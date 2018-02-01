@@ -52,25 +52,4 @@ public abstract class AbstractNativeReference implements AutoCloseable {
   public final void dispose() {
     close();
   }
-
-  /**
-   * Simply calls {@link AbstractNativeReference#dispose()} to free
-   * any underlying C++ object reference which has not yet been manually
-   * released.
-   *
-   * @deprecated You should not rely on GC of Rocks objects, and instead should
-   * either call {@link AbstractNativeReference#close()} manually or make
-   * use of some sort of ARM (Automatic Resource Management) such as
-   * Java 7's <a href="https://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html">try-with-resources</a>
-   * statement
-   */
-  @Override
-  @Deprecated
-  protected void finalize() throws Throwable {
-    if(isOwningHandle()) {
-      //TODO(AR) log a warning message... developer should have called close()
-    }
-    dispose();
-    super.finalize();
-  }
 }
