@@ -2370,6 +2370,10 @@ public class RocksDB extends RocksObject {
     return keyMayExist(key, 0, key.length, valueHolder);
   }
 
+  public void deleteFilesInRange(final byte[] beginKey, final byte[] endKey) throws RocksDBException {
+    deleteFilesInRange(nativeHandle_, beginKey, 0, beginKey.length, endKey, 0, endKey.length);
+  }
+
   /**
    * If the key definitely does not exist in the database, then this method
    * returns null, else it returns an instance of KeyMayExistResult
@@ -4432,6 +4436,12 @@ public class RocksDB extends RocksObject {
       final long cfHandle, final String property, final int propertyLength)
       throws RocksDBException;
   private native void resetStats(final long nativeHandle)
+      throws RocksDBException;
+  protected native void deleteFilesInRange(long handle, byte[] beginKey, int beginKeyOffset,
+      int beginKeyLength, byte[] endKey, int endKeyOffset, int endKeyLength)
+      throws RocksDBException;
+  protected native void deleteRange(long handle, byte[] beginKey, int beginKeyOffset,
+      int beginKeyLength, byte[] endKey, int endKeyOffset, int endKeyLength, long cfHandle)
       throws RocksDBException;
   private native long getAggregatedLongProperty(final long nativeHandle,
       final String property, int propertyLength) throws RocksDBException;

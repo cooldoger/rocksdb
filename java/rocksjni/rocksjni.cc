@@ -20,6 +20,7 @@
 #include "rocksdb/cache.h"
 #include "rocksdb/convenience.h"
 #include "rocksdb/db.h"
+#include "rocksdb/convenience.h"
 #include "rocksdb/options.h"
 #include "rocksdb/types.h"
 #include "rocksjni/portal.h"
@@ -1765,6 +1766,52 @@ jobjectArray Java_org_rocksdb_RocksDB_multiGet__J_3_3B_3I_3I(
   return multi_get_helper(
       env, jdb, reinterpret_cast<ROCKSDB_NAMESPACE::DB*>(jdb_handle),
       ROCKSDB_NAMESPACE::ReadOptions(), jkeys, jkey_offs, jkey_lens, nullptr);
+}
+
+
+/*
+ * Class:     org_rocksdb_RocksDB
+ * Method:    deleteFilesInRange
+ * Signature: (J[BII[BII)V
+ */
+JNIEXPORT void JNICALL Java_org_rocksdb_RocksDB_deleteFilesInRange(
+  JNIEnv* env, jobject jdb, jlong jdb_handle, jbyteArray jbegin_key,
+  jint jbegin_key_off, jint jbegin_key_len, jbyteArray jend_key,
+  jint jend_key_off, jint jend_key_len) {
+  auto* db = reinterpret_cast<rocksdb::DB*>(jdb_handle);
+  auto* cf_handle = db->DefaultColumnFamily();
+
+  jbyte* begin_key = new jbyte[jbegin_key_len];
+  env->GetByteArrayRegion(jbegin_key, jbegin_key_off, jbegin_key_len,
+                          begin_key);
+  if (env->ExceptionCheck()) {
+    // exception thrown: ArrayIndexOutOfBoundsException
+    delete[] begin_key;
+    return;
+  }
+  const rocksdb::Slice begin_key_slice(reinterpret_cast<char*>(begin_key),
+                                 jbegin_key_len);
+
+  jbyte* end_key = new jbyte[jend_key_len];
+  env->GetByteArrayRegion(jend_key, jend_key_off, jend_key_len, end_key);
+  if (env->ExceptionCheck()) {
+    // exception thrown: ArrayIndexOutOfBoundsException
+    delete[] begin_key;
+    delete[] end_key;
+    return;
+  }
+  const rocksdb::Slice end_key_slice(reinterpret_cast<char*>(end_key), jend_key_len);
+
+  rocksdb::Status s = rocksdb::DeleteFilesInRange(
+    db, cf_handle, &begin_key_slice, &end_key_slice);
+
+  // cleanup
+  delete[] begin_key;
+  delete[] end_key;
+
+  if (!s.ok()) {
+    rocksdb::RocksDBExceptionJni::ThrowNew(env, s);
+  }
 }
 
 /*
