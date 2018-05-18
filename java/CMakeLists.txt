@@ -45,6 +45,10 @@ set(JNI_NATIVE_SOURCES
         rocksjni/persistent_cache.cc
         rocksjni/ratelimiterjni.cc
         rocksjni/remove_emptyvalue_compactionfilterjni.cc
+        rocksjni/rocks_callback_object.cc
+        rocksjni/cassandra_compactionfilterjni.cc
+        rocksjni/cassandra_value_operator.cc
+        rocksjni/cassandra_partition_meta_merge_operator.cc
         rocksjni/restorejni.cc
         rocksjni/rocks_callback_object.cc
         rocksjni/rocksdb_exception_test.cc
@@ -106,6 +110,7 @@ set(JAVA_MAIN_CLASSES
   src/main/java/org/rocksdb/Cache.java
   src/main/java/org/rocksdb/CassandraCompactionFilter.java
   src/main/java/org/rocksdb/CassandraValueMergeOperator.java
+  src/main/java/org/rocksdb/CassandraPartitionMetaMergeOperator.java
   src/main/java/org/rocksdb/Checkpoint.java
   src/main/java/org/rocksdb/ChecksumType.java
   src/main/java/org/rocksdb/ClockCache.java
@@ -395,6 +400,7 @@ if(${CMAKE_VERSION} VERSION_LESS "3.11.4" OR (${Java_VERSION_MINOR} STREQUAL "7"
           org.rocksdb.BloomFilter
           org.rocksdb.CassandraCompactionFilter
           org.rocksdb.CassandraValueMergeOperator
+          org.rocksdb.CassandraPartitionMetaMergeOperator
           org.rocksdb.Checkpoint
           org.rocksdb.ClockCache
           org.rocksdb.ColumnFamilyHandle

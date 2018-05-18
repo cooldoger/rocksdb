@@ -4440,9 +4440,6 @@ public class RocksDB extends RocksObject {
   protected native void deleteFilesInRange(long handle, byte[] beginKey, int beginKeyOffset,
       int beginKeyLength, byte[] endKey, int endKeyOffset, int endKeyLength)
       throws RocksDBException;
-  protected native void deleteRange(long handle, byte[] beginKey, int beginKeyOffset,
-      int beginKeyLength, byte[] endKey, int endKeyOffset, int endKeyLength, long cfHandle)
-      throws RocksDBException;
   private native long getAggregatedLongProperty(final long nativeHandle,
       final String property, int propertyLength) throws RocksDBException;
   private native long[] getApproximateSizes(final long nativeHandle,
