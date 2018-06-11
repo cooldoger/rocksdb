@@ -15,10 +15,11 @@
  */
 jlong Java_org_rocksdb_CassandraCompactionFilter_createNewCassandraCompactionFilter0(
     JNIEnv* /*env*/, jclass /*jcls*/, jboolean purge_ttl_on_expiration,
-    jboolean ignore_range_delete_on_read, jint gc_grace_period_in_seconds) {
+    jboolean ignore_range_delete_on_read, jint gc_grace_period_in_seconds,
+    jint partition_key_length) {
   auto* compaction_filter = new rocksdb::cassandra::CassandraCompactionFilter(
       purge_ttl_on_expiration, ignore_range_delete_on_read,
-      gc_grace_period_in_seconds);
+      gc_grace_period_in_seconds, partition_key_length);
   // set the native handle to our native compaction filter
   return reinterpret_cast<jlong>(compaction_filter);
 }

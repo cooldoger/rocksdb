@@ -27,10 +27,11 @@ class CassandraStore {
  public:
   explicit CassandraStore(bool purge_ttl_on_expiration = false,
                           int32_t gc_grace_period_in_seconds = 100,
-                          bool ignore_range_delete_on_read = false) {
+                          bool ignore_range_delete_on_read = false,
+                          size_t partition_key_length = 0) {
     data_compaction_filter_ = new CassandraCompactionFilter(
         purge_ttl_on_expiration, ignore_range_delete_on_read,
-        gc_grace_period_in_seconds);
+        gc_grace_period_in_seconds, partition_key_length);
     Options options;
     options.create_if_missing = true;
     options.create_missing_column_families = true;
@@ -339,7 +340,7 @@ TEST_F(CassandraFunctionalTest, CompactionShouldRemoveTombstoneFromPut) {
   ASSERT_FALSE(std::get<0>(store.Get("k1")));
 }
 
-TEST_F(CassandraFunctionalTest, CompactionShouldPartitionDeletedData) {
+TEST_F(CassandraFunctionalTest, CompactionShouldRemovePartitionDeletedData) {
   int gc_grace_period_in_seconds = 100;
   CassandraStore store(false, gc_grace_period_in_seconds);
   int64_t now = time(nullptr);
@@ -356,6 +357,64 @@ TEST_F(CassandraFunctionalTest, CompactionShouldPartitionDeletedData) {
   store.Flush();
   store.Compact();
   ASSERT_FALSE(std::get<0>(store.Get("k1")));
+}
+
+TEST_F(CassandraFunctionalTest, PartitionDeletionWithPointMetaLookup) {
+  int gc_grace_period_in_seconds = 100;
+  CassandraStore store(false, gc_grace_period_in_seconds, false, 2);
+  int64_t now = time(nullptr);
+
+  store.Put(
+      "abcd",
+      CreateTestRowValue({
+          CreateTestColumnSpec(
+              kColumn, 0, ToMicroSeconds(now - gc_grace_period_in_seconds - 1)),
+      }));
+
+  store.DeletePartition("ab",
+                        PartitionDeletion((int32_t)now, ToMicroSeconds(now)));
+  store.Flush();
+  store.Compact();
+  ASSERT_FALSE(std::get<0>(store.Get("abcd")));
+}
+
+TEST_F(CassandraFunctionalTest,
+       PartitionDeletionWithSpecifyBadPartitionLength) {
+  int gc_grace_period_in_seconds = 100;
+  CassandraStore store(false, gc_grace_period_in_seconds, false, 5);
+  int64_t now = time(nullptr);
+
+  store.Put(
+      "abcd",
+      CreateTestRowValue({
+          CreateTestColumnSpec(
+              kColumn, 0, ToMicroSeconds(now - gc_grace_period_in_seconds - 1)),
+      }));
+
+  store.DeletePartition("ab",
+                        PartitionDeletion((int32_t)now, ToMicroSeconds(now)));
+  store.Flush();
+  store.Compact();
+  ASSERT_TRUE(std::get<0>(store.Get("abcd")));
+}
+
+TEST_F(CassandraFunctionalTest, PartitionDeletionWithNoClusteringKeyCase) {
+  int gc_grace_period_in_seconds = 100;
+  CassandraStore store(false, gc_grace_period_in_seconds, false, 4);
+  int64_t now = time(nullptr);
+
+  store.Put(
+      "abcd",
+      CreateTestRowValue({
+          CreateTestColumnSpec(
+              kColumn, 0, ToMicroSeconds(now - gc_grace_period_in_seconds - 1)),
+      }));
+
+  store.DeletePartition("abcd",
+                        PartitionDeletion((int32_t)now, ToMicroSeconds(now)));
+  store.Flush();
+  store.Compact();
+  ASSERT_FALSE(std::get<0>(store.Get("abcd")));
 }
 
 } // namespace cassandra

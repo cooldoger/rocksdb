@@ -33,12 +33,16 @@ class CassandraCompactionFilter : public CompactionFilter {
 public:
  explicit CassandraCompactionFilter(bool purge_ttl_on_expiration,
                                     bool ignore_range_delete_on_read,
-                                    int32_t gc_grace_period_in_seconds)
+                                    int32_t gc_grace_period_in_seconds,
+                                    size_t partition_key_length = 0)
      : purge_ttl_on_expiration_(purge_ttl_on_expiration),
        ignore_range_delete_on_read_(ignore_range_delete_on_read),
        gc_grace_period_(gc_grace_period_in_seconds),
+       partition_key_length_(partition_key_length),
        meta_cf_handle_(nullptr),
-       meta_db_(nullptr) {}
+       meta_db_(nullptr) {
+   meta_read_options_.ignore_range_deletions = true;
+ }
 
  const char* Name() const override;
  virtual Decision FilterV2(int level, const Slice& key, ValueType value_type,
@@ -51,9 +55,15 @@ private:
   bool purge_ttl_on_expiration_;
   bool ignore_range_delete_on_read_;
   std::chrono::seconds gc_grace_period_;
+  size_t partition_key_length_;
   std::atomic<ColumnFamilyHandle*> meta_cf_handle_;
   std::atomic<DB*> meta_db_;
+  ReadOptions meta_read_options_;
   PartitionDeletion GetPartitionDelete(const Slice& key) const;
+  PartitionDeletion GetPartitionDeleteByScan(const Slice& key, DB* meta_db,
+                                             ColumnFamilyHandle* meta_cf) const;
+  PartitionDeletion GetPartitionDeleteByPointQuery(
+      const Slice& key, DB* meta_db, ColumnFamilyHandle* meta_cf) const;
   bool ShouldDropByParitionDelete(
       const Slice& key,
       std::chrono::time_point<std::chrono::system_clock> row_timestamp) const;
