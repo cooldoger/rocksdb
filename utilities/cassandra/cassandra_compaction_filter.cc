@@ -34,9 +34,33 @@ PartitionDeletion CassandraCompactionFilter::GetPartitionDelete(
     return PartitionDeletion::kDefault;
   }
   ColumnFamilyHandle* meta_cf_handle = meta_cf_handle_.load();
+  if (partition_key_length_ > 0) {
+    return GetPartitionDeleteByPointQuery(key, meta_db, meta_cf_handle);
+  } else {
+    return GetPartitionDeleteByScan(key, meta_db, meta_cf_handle);
+  }
+}
 
-  auto it = std::unique_ptr<Iterator>(
-    meta_db->NewIterator(rocksdb::ReadOptions(), meta_cf_handle));
+PartitionDeletion CassandraCompactionFilter::GetPartitionDeleteByPointQuery(
+    const Slice& key, DB* meta_db, ColumnFamilyHandle* meta_cf) const {
+  if (key.size() < partition_key_length_) {
+    return PartitionDeletion::kDefault;
+  }
+
+  Slice partition_key(key.data(), key.size());
+  partition_key.remove_suffix(key.size() - partition_key_length_);
+
+  std::string val;
+  if (meta_db->Get(meta_read_options_, meta_cf, partition_key, &val).ok()) {
+    return PartitionDeletion::Deserialize(val.data(), val.size());
+  }
+  return PartitionDeletion::kDefault;
+}
+
+PartitionDeletion CassandraCompactionFilter::GetPartitionDeleteByScan(
+    const Slice& key, DB* meta_db, ColumnFamilyHandle* meta_cf) const {
+  auto it =
+      std::unique_ptr<Iterator>(meta_db->NewIterator(meta_read_options_, meta_cf));
   // partition meta key is encoded token+paritionkey
   it->SeekForPrev(key);
   if (!it->Valid()) {
