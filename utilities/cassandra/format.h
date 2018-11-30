@@ -195,22 +195,40 @@ private:
               CompactionShouldRemoveTombstoneExceedingGCGracePeriod);
 };
 
+class PartitionDeletion;
+typedef std::vector<std::shared_ptr<PartitionDeletion>> PartitionDeletions;
+
 class PartitionDeletion {
+  friend bool operator==(const PartitionDeletion&, const PartitionDeletion&);
+
  public:
-  PartitionDeletion(int32_t local_deletion_time, int64_t marked_for_delete_at);
+  PartitionDeletion(const Slice& partition_key, int32_t local_deletion_time,
+                    int64_t marked_for_delete_at);
   std::chrono::time_point<std::chrono::system_clock> MarkForDeleteAt() const;
   std::chrono::time_point<std::chrono::system_clock> LocalDeletionTime() const;
-  void Serialize(std::string* dest) const;
-  bool Supersedes(PartitionDeletion& pd) const;
-  static PartitionDeletion Merge(std::vector<PartitionDeletion>&& pds);
-  static PartitionDeletion Deserialize(const char* src, std::size_t size);
-  const static PartitionDeletion kDefault;
-  const static std::size_t kSize;
+  const Slice PartitionKey() const;
+  bool Supersedes(std::shared_ptr<PartitionDeletion>& pd) const;
+  static PartitionDeletions Merge(PartitionDeletions& pds);
+  static PartitionDeletions Deserialize(const char* src, std::size_t size);
+  static void Serialize(PartitionDeletions& pds, std::string* dest);
+  const static std::shared_ptr<PartitionDeletion> kDefault;
+  const static std::size_t kMinSize;
 
  private:
+  const Slice partition_key_;
   int32_t local_deletion_time_;
   int64_t marked_for_delete_at_;
 };
+
+inline bool operator==(const PartitionDeletion& x, const PartitionDeletion& y) {
+  return x.PartitionKey() == y.PartitionKey() &&
+         x.local_deletion_time_ == y.local_deletion_time_ &&
+         x.marked_for_delete_at_ == y.marked_for_delete_at_;
+}
+
+inline bool operator!=(const PartitionDeletion& x, const PartitionDeletion& y) {
+  return !(x == y);
+}
 
 } // namepsace cassandrda
 } // namespace rocksdb
