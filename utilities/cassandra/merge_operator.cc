@@ -67,22 +67,26 @@ bool CassandraPartitionMetaMergeOperator::FullMergeV2(
     MergeOperationOutput* merge_out) const {
   // Clear the *new_value for writing.
   merge_out->new_value.clear();
-  std::vector<PartitionDeletion> pds;
+  PartitionDeletions pds;
+  pds.reserve(merge_in.operand_list.size() + (merge_in.existing_value ? 1 : 0));
 
   if (merge_in.existing_value) {
-    pds.push_back(PartitionDeletion::Deserialize(
-        merge_in.existing_value->data(), merge_in.existing_value->size()));
+    for (auto& pd :
+         PartitionDeletion::Deserialize(merge_in.existing_value->data(),
+                                        merge_in.existing_value->size())) {
+      pds.push_back(pd);
+    }
   }
 
   for (auto& operand : merge_in.operand_list) {
-    pds.push_back(
-        PartitionDeletion::Deserialize(operand.data(), operand.size()));
+    for (auto& pd :
+         PartitionDeletion::Deserialize(operand.data(), operand.size())) {
+      pds.push_back(pd);
+    }
   }
 
-  PartitionDeletion merged = PartitionDeletion::Merge(std::move(pds));
-  merge_out->new_value.reserve(PartitionDeletion::kSize);
-  merged.Serialize(&(merge_out->new_value));
-
+  PartitionDeletions merged = PartitionDeletion::Merge(pds);
+  PartitionDeletion::Serialize(merged, &(merge_out->new_value));
   return true;
 }
 
@@ -93,16 +97,17 @@ bool CassandraPartitionMetaMergeOperator::PartialMergeMulti(
   assert(new_value);
   new_value->clear();
 
-  std::vector<PartitionDeletion> pds;
+  PartitionDeletions pds;
+  pds.reserve(operand_list.size());
   for (auto& operand : operand_list) {
-    pds.push_back(
-        PartitionDeletion::Deserialize(operand.data(), operand.size()));
+    for (auto& pd :
+         PartitionDeletion::Deserialize(operand.data(), operand.size())) {
+      pds.push_back(pd);
+    }
   }
 
-  PartitionDeletion merged = PartitionDeletion::Merge(std::move(pds));
-  new_value->reserve(PartitionDeletion::kSize);
-  merged.Serialize(new_value);
-
+  PartitionDeletions merged = PartitionDeletion::Merge(pds);
+  PartitionDeletion::Serialize(merged, new_value);
   return true;
 }
 

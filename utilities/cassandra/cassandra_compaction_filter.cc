@@ -21,8 +21,8 @@ void CassandraCompactionFilter::SetMetaCfHandle(
   meta_cf_handle_ = meta_cf_handle;
 }
 
-PartitionDeletion CassandraCompactionFilter::GetPartitionDelete(
-    const Slice& key) const {
+std::shared_ptr<PartitionDeletion>
+CassandraCompactionFilter::GetPartitionDelete(const Slice& key) const {
   if (!meta_db_) {
     // skip triming when parition meta db is not ready yet
     return PartitionDeletion::kDefault;
@@ -34,47 +34,30 @@ PartitionDeletion CassandraCompactionFilter::GetPartitionDelete(
     return PartitionDeletion::kDefault;
   }
   ColumnFamilyHandle* meta_cf_handle = meta_cf_handle_.load();
-  if (partition_key_length_ > 0) {
-    return GetPartitionDeleteByPointQuery(key, meta_db, meta_cf_handle);
-  } else {
-    return GetPartitionDeleteByScan(key, meta_db, meta_cf_handle);
-  }
+  return GetPartitionDeleteByPointQuery(key, meta_db, meta_cf_handle);
 }
 
-PartitionDeletion CassandraCompactionFilter::GetPartitionDeleteByPointQuery(
+std::shared_ptr<PartitionDeletion>
+CassandraCompactionFilter::GetPartitionDeleteByPointQuery(
     const Slice& key, DB* meta_db, ColumnFamilyHandle* meta_cf) const {
-  if (key.size() < partition_key_length_) {
+  if (key.size() < token_length_) {
     return PartitionDeletion::kDefault;
   }
 
-  Slice partition_key(key.data(), key.size());
-  partition_key.remove_suffix(key.size() - partition_key_length_);
-
+  Slice token(key.data(), token_length_);
+  Slice key_wo_token(key.data() + token_length_, key.size() - token_length_);
   std::string val;
-  if (meta_db->Get(meta_read_options_, meta_cf, partition_key, &val).ok()) {
-    return PartitionDeletion::Deserialize(val.data(), val.size());
+
+  if (meta_db->Get(meta_read_options_, meta_cf, token, &val).ok()) {
+    PartitionDeletions pds =
+        PartitionDeletion::Deserialize(val.data(), val.size());
+    for (auto& pd : pds) {
+      if (key_wo_token.starts_with(pd->PartitionKey())) {
+        return pd;
+      }
+    }
   }
   return PartitionDeletion::kDefault;
-}
-
-PartitionDeletion CassandraCompactionFilter::GetPartitionDeleteByScan(
-    const Slice& key, DB* meta_db, ColumnFamilyHandle* meta_cf) const {
-  auto it =
-      std::unique_ptr<Iterator>(meta_db->NewIterator(meta_read_options_, meta_cf));
-  // partition meta key is encoded token+paritionkey
-  it->SeekForPrev(key);
-  if (!it->Valid()) {
-    // skip trimming when
-    return PartitionDeletion::kDefault;
-  }
-
-  if (!key.starts_with(it->key())) {
-    // skip trimming when there is no parition meta data
-    return PartitionDeletion::kDefault;
-  }
-
-  Slice value = it->value();
-  return PartitionDeletion::Deserialize(value.data(), value.size());
 }
 
 bool CassandraCompactionFilter::ShouldDropByParitionDelete(
@@ -82,7 +65,7 @@ bool CassandraCompactionFilter::ShouldDropByParitionDelete(
     std::chrono::time_point<std::chrono::system_clock> row_timestamp) const {
   std::chrono::seconds gc_grace_period =
       ignore_range_delete_on_read_ ? std::chrono::seconds(0) : gc_grace_period_;
-  return GetPartitionDelete(key).MarkForDeleteAt() >
+  return GetPartitionDelete(key)->MarkForDeleteAt() >
          row_timestamp + gc_grace_period;
 }
 
