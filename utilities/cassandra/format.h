@@ -196,7 +196,7 @@ private:
 };
 
 class PartitionDeletion;
-typedef std::vector<std::shared_ptr<PartitionDeletion>> PartitionDeletions;
+typedef std::vector<std::unique_ptr<PartitionDeletion>> PartitionDeletions;
 
 class PartitionDeletion {
   friend bool operator==(const PartitionDeletion&, const PartitionDeletion&);
@@ -204,14 +204,15 @@ class PartitionDeletion {
  public:
   PartitionDeletion(const Slice& partition_key, int32_t local_deletion_time,
                     int64_t marked_for_delete_at);
+  PartitionDeletion(const PartitionDeletion& pd);
+
   std::chrono::time_point<std::chrono::system_clock> MarkForDeleteAt() const;
   std::chrono::time_point<std::chrono::system_clock> LocalDeletionTime() const;
   const Slice PartitionKey() const;
-  bool Supersedes(std::shared_ptr<PartitionDeletion>& pd) const;
-  static PartitionDeletions Merge(PartitionDeletions& pds);
+  bool Supersedes(std::unique_ptr<PartitionDeletion>& pd) const;
+  static PartitionDeletions Merge(PartitionDeletions&& pds);
   static PartitionDeletions Deserialize(const char* src, std::size_t size);
-  static void Serialize(PartitionDeletions& pds, std::string* dest);
-  const static std::shared_ptr<PartitionDeletion> kDefault;
+  static void Serialize(PartitionDeletions&& pds, std::string* dest);
   const static std::size_t kMinSize;
 
  private:

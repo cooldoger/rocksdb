@@ -361,13 +361,21 @@ TEST(RowValueTest, ExpireTtlShouldConvertExpiredColumnsToTombstones) {
   EXPECT_FALSE(changed);
 }
 
+std::unique_ptr<PartitionDeletion> pd_make_unique(
+    const Slice& slice, int32_t local_deletion_time,
+    int64_t marked_for_delete_at) {
+  return std::unique_ptr<PartitionDeletion>(
+      new PartitionDeletion(slice, local_deletion_time, marked_for_delete_at));
+}
+
+std::unique_ptr<PartitionDeletion> pd_make_unique(const PartitionDeletion& pd) {
+  return std::unique_ptr<PartitionDeletion>(new PartitionDeletion(pd));
+}
+
 TEST(ParitionDeletionTest, Supersedes) {
-  std::shared_ptr<PartitionDeletion> pd1 =
-      std::make_shared<PartitionDeletion>(Slice(), 100, 100);
-  std::shared_ptr<PartitionDeletion> pd2 =
-      std::make_shared<PartitionDeletion>(Slice(), 100, 101);
-  std::shared_ptr<PartitionDeletion> pd3 =
-      std::make_shared<PartitionDeletion>(Slice(), 101, 101);
+  auto pd1 = pd_make_unique(Slice(), 100, 100);
+  auto pd2 = pd_make_unique(Slice(), 100, 101);
+  auto pd3 = pd_make_unique(Slice(), 101, 101);
 
   EXPECT_TRUE(pd2->Supersedes(pd1));
   EXPECT_TRUE(pd3->Supersedes(pd2));
@@ -376,7 +384,7 @@ TEST(ParitionDeletionTest, Supersedes) {
 
 void AssertRoundTrip(PartitionDeletions& pds) {
   std::string value;
-  PartitionDeletion::Serialize(pds, &value);
+  PartitionDeletion::Serialize(std::move(pds), &value);
   PartitionDeletions deserialized =
       PartitionDeletion::Deserialize(value.data(), value.size());
   EXPECT_EQ(pds.size(), deserialized.size());
@@ -388,57 +396,59 @@ void AssertRoundTrip(PartitionDeletions& pds) {
 TEST(ParitionDeletionTest, Serialization) {
   PartitionDeletions pds;
   AssertRoundTrip(pds);
-  pds.push_back(std::make_shared<PartitionDeletion>(Slice("a"), 100, 200));
+  pds.push_back(pd_make_unique(Slice("a"), 100, 200));
   AssertRoundTrip(pds);
-  pds.push_back(std::make_shared<PartitionDeletion>(Slice("b"), 0, 0));
+  pds.push_back(pd_make_unique(Slice("b"), 0, 0));
   AssertRoundTrip(pds);
-  pds.push_back(PartitionDeletion::kDefault);
+  pds.push_back(pd_make_unique(Slice("abc"),
+                               std::numeric_limits<int32_t>::max(),
+                               std::numeric_limits<int64_t>::min()));
   AssertRoundTrip(pds);
 }
 
 TEST(ParitionDeletionTest, MergeEmpty) {
-  PartitionDeletions pds;
-  EXPECT_EQ(PartitionDeletions(), PartitionDeletion::Merge(pds));
+  EXPECT_EQ(PartitionDeletions(),
+            PartitionDeletion::Merge(PartitionDeletions()));
 }
 
 TEST(ParitionDeletionTest, MergeSingle) {
-  auto pd0 = std::make_shared<PartitionDeletion>(Slice("a"), 100, 200);
+  PartitionDeletion pd0(Slice("a"), 100, 200);
   PartitionDeletions pds;
-  pds.push_back(pd0);
-  PartitionDeletions merged = PartitionDeletion::Merge(pds);
+  pds.push_back(pd_make_unique(pd0));
+  PartitionDeletions merged = PartitionDeletion::Merge(std::move(pds));
   EXPECT_EQ(1, merged.size());
-  EXPECT_EQ(merged[0], pd0);
+  EXPECT_EQ(pd0, *merged[0]);
 }
 
 TEST(ParitionDeletionTest, MergeSinglePKKeepLast) {
-  auto pd0 = std::make_shared<PartitionDeletion>(Slice("a"), 100, 200);
-  auto pd1 = std::make_shared<PartitionDeletion>(Slice("a"), 101, 300);
-  auto pd2 = std::make_shared<PartitionDeletion>(Slice("a"), 100, 300);
+  PartitionDeletion pd0(Slice("a"), 100, 200);
+  PartitionDeletion pd1(Slice("a"), 101, 300);
+  PartitionDeletion pd2(Slice("a"), 100, 300);
 
   PartitionDeletions pds;
-  pds.push_back(pd0);
-  pds.push_back(pd1);
-  pds.push_back(pd2);
+  pds.push_back(pd_make_unique(pd0));
+  pds.push_back(pd_make_unique(pd1));
+  pds.push_back(pd_make_unique(pd2));
 
-  PartitionDeletions merged = PartitionDeletion::Merge(pds);
+  PartitionDeletions merged = PartitionDeletion::Merge(std::move(pds));
   EXPECT_EQ(1, merged.size());
-  EXPECT_EQ(merged[0], pd1);
+  EXPECT_EQ(pd1, *merged[0]);
 }
 
 TEST(ParitionDeletionTest, MergeKeepLastestDeletionPerPK) {
-  auto pd0 = std::make_shared<PartitionDeletion>(Slice("a"), 100, 200);
-  auto pd1 = std::make_shared<PartitionDeletion>(Slice("b"), 100, 200);
-  auto pd2 = std::make_shared<PartitionDeletion>(Slice("a"), 101, 300);
-  auto pd3 = std::make_shared<PartitionDeletion>(Slice("a"), 100, 300);
+  PartitionDeletion pd0(Slice("a"), 100, 200);
+  PartitionDeletion pd1(Slice("b"), 100, 200);
+  PartitionDeletion pd2(Slice("a"), 101, 300);
+  PartitionDeletion pd3(Slice("a"), 100, 300);
   PartitionDeletions pds;
-  pds.push_back(pd0);
-  pds.push_back(pd1);
-  pds.push_back(pd2);
-  pds.push_back(pd3);
-  PartitionDeletions merged = PartitionDeletion::Merge(pds);
+  pds.push_back(pd_make_unique(pd0));
+  pds.push_back(pd_make_unique(pd1));
+  pds.push_back(pd_make_unique(pd2));
+  pds.push_back(pd_make_unique(pd3));
+  PartitionDeletions merged = PartitionDeletion::Merge(std::move(pds));
   EXPECT_EQ(2, merged.size());
-  EXPECT_EQ(merged[0], pd2);
-  EXPECT_EQ(merged[1], pd1);
+  EXPECT_EQ(pd2, *merged[0]);
+  EXPECT_EQ(pd1, *merged[1]);
 }
 } // namespace cassandra
 }  // namespace ROCKSDB_NAMESPACE

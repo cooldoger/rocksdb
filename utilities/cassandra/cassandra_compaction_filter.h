@@ -59,10 +59,10 @@ private:
   std::atomic<ColumnFamilyHandle*> meta_cf_handle_;
   std::atomic<DB*> meta_db_;
   ReadOptions meta_read_options_;
-  std::shared_ptr<PartitionDeletion> GetPartitionDelete(const Slice& key) const;
-  std::shared_ptr<PartitionDeletion> GetPartitionDeleteByScan(
+  std::unique_ptr<PartitionDeletion> GetPartitionDelete(const Slice& key) const;
+  std::unique_ptr<PartitionDeletion> GetPartitionDeleteByScan(
       const Slice& key, DB* meta_db, ColumnFamilyHandle* meta_cf) const;
-  std::shared_ptr<PartitionDeletion> GetPartitionDeleteByPointQuery(
+  std::unique_ptr<PartitionDeletion> GetPartitionDeleteByPointQuery(
       const Slice& key, DB* meta_db, ColumnFamilyHandle* meta_cf) const;
   bool ShouldDropByParitionDelete(
       const Slice& key,
