@@ -74,19 +74,19 @@ bool CassandraPartitionMetaMergeOperator::FullMergeV2(
     for (auto& pd :
          PartitionDeletion::Deserialize(merge_in.existing_value->data(),
                                         merge_in.existing_value->size())) {
-      pds.push_back(pd);
+      pds.push_back(std::move(pd));
     }
   }
 
   for (auto& operand : merge_in.operand_list) {
     for (auto& pd :
          PartitionDeletion::Deserialize(operand.data(), operand.size())) {
-      pds.push_back(pd);
+      pds.push_back(std::move(pd));
     }
   }
 
-  PartitionDeletions merged = PartitionDeletion::Merge(pds);
-  PartitionDeletion::Serialize(merged, &(merge_out->new_value));
+  PartitionDeletions merged = PartitionDeletion::Merge(std::move(pds));
+  PartitionDeletion::Serialize(std::move(merged), &(merge_out->new_value));
   return true;
 }
 
@@ -102,12 +102,12 @@ bool CassandraPartitionMetaMergeOperator::PartialMergeMulti(
   for (auto& operand : operand_list) {
     for (auto& pd :
          PartitionDeletion::Deserialize(operand.data(), operand.size())) {
-      pds.push_back(pd);
+      pds.push_back(std::move(pd));
     }
   }
 
-  PartitionDeletions merged = PartitionDeletion::Merge(pds);
-  PartitionDeletion::Serialize(merged, new_value);
+  PartitionDeletions merged = PartitionDeletion::Merge(std::move(pds));
+  PartitionDeletion::Serialize(std::move(merged), new_value);
   return true;
 }
 

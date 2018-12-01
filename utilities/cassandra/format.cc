@@ -386,10 +386,6 @@ RowValue RowValue::Merge(std::vector<RowValue>&& values) {
   return RowValue(std::move(columns), last_modified_time);
 }
 
-const std::shared_ptr<PartitionDeletion> PartitionDeletion::kDefault =
-    std::make_shared<PartitionDeletion>(Slice(), kDefaultLocalDeletionTime,
-                                        kDefaultMarkedForDeleteAt);
-
 // partition deletion should be at least 16 bytes
 // (int32 pk size + int32 local_deletion_time + int64 marked_for_delete_at)
 const std::size_t PartitionDeletion::kMinSize =
@@ -401,6 +397,11 @@ PartitionDeletion::PartitionDeletion(const Slice& partition_key,
     : partition_key_(partition_key),
       local_deletion_time_(local_deletion_time),
       marked_for_delete_at_(marked_for_delete_at) {}
+
+PartitionDeletion::PartitionDeletion(const PartitionDeletion& pd)
+    : partition_key_(pd.partition_key_),
+      local_deletion_time_(pd.local_deletion_time_),
+      marked_for_delete_at_(pd.marked_for_delete_at_) {}
 
 std::chrono::time_point<std::chrono::system_clock>
 PartitionDeletion::MarkForDeleteAt() const {
@@ -440,14 +441,14 @@ PartitionDeletions PartitionDeletion::Deserialize(const char* src,
         rocksdb::cassandra::Deserialize<int64_t>(src, offset);
     offset += sizeof(int64_t);
 
-    std::shared_ptr<PartitionDeletion> pd = std::make_shared<PartitionDeletion>(
-        pk, local_deletion_time, marked_for_delete_at);
+    std::unique_ptr<PartitionDeletion> pd(
+        new PartitionDeletion(pk, local_deletion_time, marked_for_delete_at));
     rets.push_back(std::move(pd));
   }
   return rets;
 }
 
-void PartitionDeletion::Serialize(PartitionDeletions& pds, std::string* dest) {
+void PartitionDeletion::Serialize(PartitionDeletions&& pds, std::string* dest) {
   for (auto& pd : pds) {
     rocksdb::cassandra::Serialize<int32_t>((int32_t)pd->partition_key_.size(),
                                            dest);
@@ -458,7 +459,7 @@ void PartitionDeletion::Serialize(PartitionDeletions& pds, std::string* dest) {
 }
 
 // Merge multiple PartitionDeletion only keep latest one per partition key
-PartitionDeletions PartitionDeletion::Merge(PartitionDeletions& pds) {
+PartitionDeletions PartitionDeletion::Merge(PartitionDeletions&& pds) {
   PartitionDeletions rets;
   // most time merge endup with one result unless token hash collision
   rets.reserve(1);
@@ -468,21 +469,21 @@ PartitionDeletions PartitionDeletion::Merge(PartitionDeletions& pds) {
     for (std::size_t i = 0; i < rets.size(); i++) {
       if (rets[i]->partition_key_ == deletion->partition_key_) {
         if (deletion->Supersedes(rets[i])) {
-          rets[i] = deletion;
+          rets[i] = std::move(deletion);
         }
         merged = true;
         break;
       }
     }
     if (!merged) {
-      rets.push_back(deletion);
+      rets.push_back(std::move(deletion));
     }
   }
   return rets;
 }
 
 bool PartitionDeletion::Supersedes(
-    std::shared_ptr<PartitionDeletion>& pd) const {
+    std::unique_ptr<PartitionDeletion>& pd) const {
   return MarkForDeleteAt() > pd->MarkForDeleteAt() ||
          (MarkForDeleteAt() == pd->MarkForDeleteAt() &&
           LocalDeletionTime() > pd->LocalDeletionTime());

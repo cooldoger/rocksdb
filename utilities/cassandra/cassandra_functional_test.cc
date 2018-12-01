@@ -88,10 +88,10 @@ class CassandraStore {
     Slice partition_key(partition_key_with_token.data() + token_length_,
                         partition_key_with_token.size() - token_length_);
     PartitionDeletions pds;
-    pds.push_back(std::make_shared<PartitionDeletion>(
-        partition_key, local_deletion_time, marked_for_delete_at));
+    pds.push_back(std::unique_ptr<PartitionDeletion>(new PartitionDeletion(
+        partition_key, local_deletion_time, marked_for_delete_at)));
     std::string val;
-    PartitionDeletion::Serialize(pds, &val);
+    PartitionDeletion::Serialize(std::move(pds), &val);
     Slice valslice(val.data(), val.size());
 
     auto s = db_->Merge(write_option_, meta_cf_handle_, token, valslice);

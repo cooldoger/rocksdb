@@ -18,27 +18,27 @@ void CassandraCompactionFilter::SetMetaCfHandle(
   meta_cf_handle_ = meta_cf_handle;
 }
 
-std::shared_ptr<PartitionDeletion>
+std::unique_ptr<PartitionDeletion>
 CassandraCompactionFilter::GetPartitionDelete(const Slice& key) const {
   if (!meta_db_) {
     // skip triming when parition meta db is not ready yet
-    return PartitionDeletion::kDefault;
+    return nullptr;
   }
 
   DB* meta_db = meta_db_.load();
   if (!meta_cf_handle_) {
     // skip triming when parition meta cf handle is not ready yet
-    return PartitionDeletion::kDefault;
+    return nullptr;
   }
   ColumnFamilyHandle* meta_cf_handle = meta_cf_handle_.load();
   return GetPartitionDeleteByPointQuery(key, meta_db, meta_cf_handle);
 }
 
-std::shared_ptr<PartitionDeletion>
+std::unique_ptr<PartitionDeletion>
 CassandraCompactionFilter::GetPartitionDeleteByPointQuery(
     const Slice& key, DB* meta_db, ColumnFamilyHandle* meta_cf) const {
   if (key.size() < token_length_) {
-    return PartitionDeletion::kDefault;
+    return nullptr;
   }
 
   Slice token(key.data(), token_length_);
@@ -50,11 +50,11 @@ CassandraCompactionFilter::GetPartitionDeleteByPointQuery(
         PartitionDeletion::Deserialize(val.data(), val.size());
     for (auto& pd : pds) {
       if (key_wo_token.starts_with(pd->PartitionKey())) {
-        return pd;
+        return std::move(pd);
       }
     }
   }
-  return PartitionDeletion::kDefault;
+  return nullptr;
 }
 
 bool CassandraCompactionFilter::ShouldDropByParitionDelete(
@@ -62,8 +62,10 @@ bool CassandraCompactionFilter::ShouldDropByParitionDelete(
     std::chrono::time_point<std::chrono::system_clock> row_timestamp) const {
   std::chrono::seconds gc_grace_period =
       ignore_range_delete_on_read_ ? std::chrono::seconds(0) : gc_grace_period_;
-  return GetPartitionDelete(key)->MarkForDeleteAt() >
-         row_timestamp + gc_grace_period;
+  auto pd = GetPartitionDelete(key);
+
+  return pd != nullptr &&
+         pd->MarkForDeleteAt() > row_timestamp + gc_grace_period;
 }
 
 CompactionFilter::Decision CassandraCompactionFilter::FilterV2(
