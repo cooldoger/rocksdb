@@ -10,6 +10,7 @@
 #include "rocksdb/db.h"
 #include "rocksdb/slice.h"
 #include "utilities/cassandra/format.h"
+#include "utilities/cassandra/partition_meta_data.h"
 
 namespace rocksdb {
 namespace cassandra {
@@ -38,10 +39,13 @@ public:
      : purge_ttl_on_expiration_(purge_ttl_on_expiration),
        ignore_range_delete_on_read_(ignore_range_delete_on_read),
        gc_grace_period_(gc_grace_period_in_seconds),
-       token_length_(token_length),
-       meta_cf_handle_(nullptr),
-       meta_db_(nullptr) {
-   meta_read_options_.ignore_range_deletions = true;
+       token_length_(token_length) {}
+
+ ~CassandraCompactionFilter() {
+   if (partition_meta_data_) {
+     delete partition_meta_data_.load();
+     partition_meta_data_.exchange(nullptr);
+   }
  }
 
  const char* Name() const override;
@@ -55,15 +59,8 @@ private:
   bool purge_ttl_on_expiration_;
   bool ignore_range_delete_on_read_;
   std::chrono::seconds gc_grace_period_;
+  std::atomic<PartitionMetaData*> partition_meta_data_;
   size_t token_length_;
-  std::atomic<ColumnFamilyHandle*> meta_cf_handle_;
-  std::atomic<DB*> meta_db_;
-  ReadOptions meta_read_options_;
-  std::unique_ptr<PartitionDeletion> GetPartitionDelete(const Slice& key) const;
-  std::unique_ptr<PartitionDeletion> GetPartitionDeleteByScan(
-      const Slice& key, DB* meta_db, ColumnFamilyHandle* meta_cf) const;
-  std::unique_ptr<PartitionDeletion> GetPartitionDeleteByPointQuery(
-      const Slice& key, DB* meta_db, ColumnFamilyHandle* meta_cf) const;
   bool ShouldDropByParitionDelete(
       const Slice& key,
       std::chrono::time_point<std::chrono::system_clock> row_timestamp) const;
