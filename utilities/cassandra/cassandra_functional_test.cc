@@ -32,7 +32,7 @@ class CassandraStore {
     token_length_ = token_length;
     data_compaction_filter_ = new CassandraCompactionFilter(
         purge_ttl_on_expiration, ignore_range_delete_on_read,
-        gc_grace_period_in_seconds, token_length);
+        gc_grace_period_in_seconds);
     Options options;
     options.create_if_missing = true;
     options.create_missing_column_families = true;
@@ -57,10 +57,12 @@ class CassandraStore {
     assert(cf_handles.size() == 2);
     data_cf_handle_ = cf_handles.at(0);
     meta_cf_handle_ = cf_handles.at(1);
-    data_compaction_filter_->SetMetaCfHandle(db_, meta_cf_handle_);
+    meta_data_ = new PartitionMetaData(db_, meta_cf_handle_, token_length);
+    data_compaction_filter_->SetPartitionMetaData(meta_data_);
   }
 
   ~CassandraStore() {
+    delete meta_data_;
     delete data_cf_handle_;
     delete meta_cf_handle_;
     delete db_;
@@ -84,17 +86,8 @@ class CassandraStore {
   bool DeletePartition(const std::string& partition_key_with_token,
                        int32_t local_deletion_time,
                        int64_t marked_for_delete_at) {
-    Slice token(partition_key_with_token.data(), token_length_);
-    Slice partition_key(partition_key_with_token.data() + token_length_,
-                        partition_key_with_token.size() - token_length_);
-    PartitionDeletions pds;
-    pds.push_back(std::unique_ptr<PartitionDeletion>(new PartitionDeletion(
-        partition_key, local_deletion_time, marked_for_delete_at)));
-    std::string val;
-    PartitionDeletion::Serialize(std::move(pds), &val);
-    Slice valslice(val.data(), val.size());
-
-    auto s = db_->Merge(write_option_, meta_cf_handle_, token, valslice);
+    auto s = meta_data_->DeletePartition(
+        partition_key_with_token, local_deletion_time, marked_for_delete_at);
     if (s.ok()) {
       return true;
     } else {
@@ -148,6 +141,7 @@ class CassandraStore {
   CassandraCompactionFilter* data_compaction_filter_;
   ColumnFamilyHandle* data_cf_handle_;
   ColumnFamilyHandle* meta_cf_handle_;
+  PartitionMetaData* meta_data_;
   WriteOptions write_option_;
   ReadOptions get_option_;
   size_t token_length_;

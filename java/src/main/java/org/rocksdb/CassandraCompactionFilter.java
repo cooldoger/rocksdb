@@ -10,19 +10,18 @@ package org.rocksdb;
  */
 public class CassandraCompactionFilter
     extends AbstractCompactionFilter<Slice> {
-  public CassandraCompactionFilter(boolean purgeTtlOnExpiration, boolean ignoreRangeDeleteOnRead,
-      int gcGracePeriodInSeconds, int tokenLength) {
+  public CassandraCompactionFilter(
+      boolean purgeTtlOnExpiration, boolean ignoreRangeDeleteOnRead, int gcGracePeriodInSeconds) {
     super(createNewCassandraCompactionFilter0(
-        purgeTtlOnExpiration, ignoreRangeDeleteOnRead, gcGracePeriodInSeconds, tokenLength));
+        purgeTtlOnExpiration, ignoreRangeDeleteOnRead, gcGracePeriodInSeconds));
   }
 
-  public void setMetaCfHandle(RocksDB rocksdb, ColumnFamilyHandle metaCfHandle) {
-    setMetaCfHandle(getNativeHandle(), rocksdb.getNativeHandle(), metaCfHandle.getNativeHandle());
+  public void setPartitionMetaData(CassandraPartitionMetaData partitionMetaData) {
+    setPartitionMetaData(getNativeHandle(), partitionMetaData.getNativeHandle());
   }
 
-  private native static long createNewCassandraCompactionFilter0(boolean purgeTtlOnExpiration,
-      boolean ignoreRangeDeleteOnRead, int gcGracePeriodInSeconds, int tokenLength);
+  private native static long createNewCassandraCompactionFilter0(
+      boolean purgeTtlOnExpiration, boolean ignoreRangeDeleteOnRead, int gcGracePeriodInSeconds);
 
-  private native static void setMetaCfHandle(
-      long compactionFilter, long rocksdb, long metaCfHandle);
+  private native static void setPartitionMetaData(long compactionFilter, long partitionMetaData);
 }

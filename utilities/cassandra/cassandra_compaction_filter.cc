@@ -12,10 +12,9 @@ const char* CassandraCompactionFilter::Name() const {
   return "CassandraCompactionFilter";
 }
 
-void CassandraCompactionFilter::SetMetaCfHandle(
-    DB* meta_db, ColumnFamilyHandle* meta_cf_handle) {
-  partition_meta_data_ =
-      new PartitionMetaData(meta_db, meta_cf_handle, token_length_);
+void CassandraCompactionFilter::SetPartitionMetaData(
+    PartitionMetaData* meta_data) {
+  partition_meta_data_ = meta_data;
 }
 
 bool CassandraCompactionFilter::ShouldDropByParitionDelete(

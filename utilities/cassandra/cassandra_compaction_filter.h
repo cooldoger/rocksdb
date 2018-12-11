@@ -34,33 +34,22 @@ class CassandraCompactionFilter : public CompactionFilter {
 public:
  explicit CassandraCompactionFilter(bool purge_ttl_on_expiration,
                                     bool ignore_range_delete_on_read,
-                                    int32_t gc_grace_period_in_seconds,
-                                    size_t token_length)
+                                    int32_t gc_grace_period_in_seconds)
      : purge_ttl_on_expiration_(purge_ttl_on_expiration),
        ignore_range_delete_on_read_(ignore_range_delete_on_read),
-       gc_grace_period_(gc_grace_period_in_seconds),
-       token_length_(token_length) {}
-
- ~CassandraCompactionFilter() {
-   if (partition_meta_data_) {
-     delete partition_meta_data_.load();
-     partition_meta_data_.exchange(nullptr);
-   }
- }
+       gc_grace_period_(gc_grace_period_in_seconds) {}
 
  const char* Name() const override;
  virtual Decision FilterV2(int level, const Slice& key, ValueType value_type,
                            const Slice& existing_value, std::string* new_value,
                            std::string* skip_until) const override;
-
- void SetMetaCfHandle(DB* meta_db, ColumnFamilyHandle* meta_cf_handle);
+ void SetPartitionMetaData(PartitionMetaData* meta_data);
 
 private:
   bool purge_ttl_on_expiration_;
   bool ignore_range_delete_on_read_;
   std::chrono::seconds gc_grace_period_;
   std::atomic<PartitionMetaData*> partition_meta_data_;
-  size_t token_length_;
   bool ShouldDropByParitionDelete(
       const Slice& key,
       std::chrono::time_point<std::chrono::system_clock> row_timestamp) const;
