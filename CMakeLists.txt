@@ -708,6 +708,7 @@ set(SOURCES
         utilities/blob_db/blob_log_writer.cc
         utilities/blob_db/blob_log_format.cc
         utilities/cassandra/cassandra_compaction_filter.cc
+        utilities/cassandra/partition_meta_data.cc
         utilities/cassandra/format.cc
         utilities/cassandra/merge_operator.cc
         utilities/checkpoint/checkpoint_impl.cc
@@ -1075,6 +1076,7 @@ if(WITH_TESTS)
         utilities/backupable/backupable_db_test.cc
         utilities/blob_db/blob_db_test.cc
         utilities/cassandra/cassandra_functional_test.cc
+        utilities/cassandra/cassandra_partition_meta_data_test.cc
         utilities/cassandra/cassandra_format_test.cc
         utilities/cassandra/cassandra_row_merge_test.cc
         utilities/cassandra/cassandra_serialize_test.cc

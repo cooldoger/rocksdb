@@ -542,6 +542,7 @@ TESTS = \
 	stringappend_test \
 	cassandra_format_test \
 	cassandra_functional_test \
+	cassandra_partition_meta_data_test \
 	cassandra_row_merge_test \
 	cassandra_serialize_test \
 	ttl_test \
@@ -1278,6 +1279,9 @@ cassandra_format_test: utilities/cassandra/cassandra_format_test.o utilities/cas
 	$(AM_LINK)
 
 cassandra_functional_test: utilities/cassandra/cassandra_functional_test.o utilities/cassandra/test_utils.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(AM_LINK)
+
+cassandra_partition_meta_data_test: utilities/cassandra/cassandra_partition_meta_data_test.o utilities/cassandra/test_utils.o $(LIBOBJECTS) $(TESTHARNESS)
 	$(AM_LINK)
 
 cassandra_row_merge_test: utilities/cassandra/cassandra_row_merge_test.o utilities/cassandra/test_utils.o $(LIBOBJECTS) $(TESTHARNESS)
