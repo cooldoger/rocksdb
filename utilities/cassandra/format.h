@@ -203,6 +203,10 @@ class DeletionTime {
       : local_deletion_time_(local_deletion_time),
         marked_for_delete_at_(marked_for_delete_at) {}
 
+  DeletionTime(const DeletionTime& other)
+      : local_deletion_time_(other.local_deletion_time_),
+        marked_for_delete_at_(other.marked_for_delete_at_) {}
+
   std::chrono::time_point<std::chrono::system_clock> MarkForDeleteAt() const {
     return std::chrono::time_point<std::chrono::system_clock>(
         std::chrono::microseconds(marked_for_delete_at_));
@@ -220,7 +224,7 @@ class DeletionTime {
   }
 
   void Serialize(std::string* dest) const;
-  static const DeletionTime Deserialize(const char* src, std::size_t size);
+  static const DeletionTime Deserialize(const char* src);
   const static size_t kSize;
   const static DeletionTime kLive;
 

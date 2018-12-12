@@ -381,7 +381,7 @@ TEST(DeletionTimeTest, Serialization) {
   DeletionTime t(100, 101);
   std::string val;
   t.Serialize(&val);
-  EXPECT_EQ(DeletionTime::Deserialize(val.data(), val.size()), t);
+  EXPECT_EQ(DeletionTime::Deserialize(val.data()), t);
 }
 
 std::unique_ptr<PartitionDeletion> pd_make_unique(

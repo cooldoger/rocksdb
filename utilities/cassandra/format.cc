@@ -395,9 +395,7 @@ void DeletionTime::Serialize(std::string* dest) const {
   rocksdb::cassandra::Serialize<int64_t>(marked_for_delete_at_, dest);
 }
 
-const DeletionTime DeletionTime::Deserialize(const char* src,
-                                             std::size_t size) {
-  assert(size >= kSize);
+const DeletionTime DeletionTime::Deserialize(const char* src) {
   int32_t local_deletion_time =
       rocksdb::cassandra::Deserialize<int32_t>(src, 0);
   int64_t marked_for_delete_at =
@@ -433,8 +431,7 @@ PartitionDeletions PartitionDeletion::Deserialize(const char* src,
     offset += pk_length;
 
     if ((size - offset) < DeletionTime::kSize) break;
-    DeletionTime deletion_time =
-        DeletionTime::Deserialize(src + offset, size - offset);
+    DeletionTime deletion_time = DeletionTime::Deserialize(src + offset);
     offset += DeletionTime::kSize;
 
     std::unique_ptr<PartitionDeletion> pd(
