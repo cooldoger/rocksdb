@@ -56,42 +56,27 @@ class CassandraPartitionMetaDataTest : public testing::Test {
 
 // THE TEST CASES BEGIN HERE
 TEST_F(CassandraPartitionMetaDataTest,
-       GetPartitionDeletionShouldReturnNullForPartitionNotDeleted) {
-  EXPECT_EQ(meta_data_->GetPartitionDelete("t0-p0-c0-"), nullptr);
-  EXPECT_EQ(meta_data_->GetPartitionDelete("t"), nullptr);
-  EXPECT_EQ(meta_data_->GetPartitionDelete(""), nullptr);
+       GetDeletionTimeShouldReturnLiveForPartitionNotDeleted) {
+  EXPECT_EQ(meta_data_->GetDeletionTime("t0-p0-c0-"), DeletionTime::kLive);
+  EXPECT_EQ(meta_data_->GetDeletionTime("t"), DeletionTime::kLive);
+  EXPECT_EQ(meta_data_->GetDeletionTime(""), DeletionTime::kLive);
 }
 
 TEST_F(CassandraPartitionMetaDataTest,
-       GetPartitionDeletetionShouldReturnDeletedPartition) {
+       GetDeletionShouldReturnPartitonDeletionTime) {
   meta_data_->DeletePartition("t0-p0", 100, 101);
-  auto pd = meta_data_->GetPartitionDelete("t0-p0-c0-");
-  EXPECT_EQ(pd->LocalDeletionTime(), TimePointFromSeconds(100));
-  EXPECT_EQ(pd->MarkForDeleteAt(), TimePointFromMicroSeconds(101));
-  EXPECT_EQ(pd->PartitionKey(), "p0");
+  EXPECT_EQ(meta_data_->GetDeletionTime("t0-p0-c0-"), DeletionTime(100, 101));
 }
 
 TEST_F(CassandraPartitionMetaDataTest,
-       GetPartitionDeletetionShouldReturnDeletedPartitionInTokenCollisionCase) {
+       GetDeletionShouldReturnDeletionTimeInTokenCollisionCase) {
   meta_data_->DeletePartition("t0-p0", 100, 101);
   meta_data_->DeletePartition("t0-q0", 200, 201);
 
-  auto pd0 = meta_data_->GetPartitionDelete("t0-p0-c0-");
-  EXPECT_EQ(pd0->LocalDeletionTime(), TimePointFromSeconds(100));
-  EXPECT_EQ(pd0->MarkForDeleteAt(), TimePointFromMicroSeconds(101));
-  EXPECT_EQ(pd0->PartitionKey(), "p0");
-
-  auto pd1 = meta_data_->GetPartitionDelete("t0-q0-c0-");
-  EXPECT_EQ(pd1->LocalDeletionTime(), TimePointFromSeconds(200));
-  EXPECT_EQ(pd1->MarkForDeleteAt(), TimePointFromMicroSeconds(201));
-  EXPECT_EQ(pd1->PartitionKey(), "q0");
-
-  auto pd2 = meta_data_->GetPartitionDelete("t0-q0");
-  EXPECT_EQ(pd2->LocalDeletionTime(), TimePointFromSeconds(200));
-  EXPECT_EQ(pd2->MarkForDeleteAt(), TimePointFromMicroSeconds(201));
-  EXPECT_EQ(pd2->PartitionKey(), "q0");
-
-  EXPECT_EQ(meta_data_->GetPartitionDelete("t0-q"), nullptr);
+  EXPECT_EQ(meta_data_->GetDeletionTime("t0-p0-c0-"), DeletionTime(100, 101));
+  EXPECT_EQ(meta_data_->GetDeletionTime("t0-q0-c0-"), DeletionTime(200, 201));
+  EXPECT_EQ(meta_data_->GetDeletionTime("t0-q0"), DeletionTime(200, 201));
+  EXPECT_EQ(meta_data_->GetDeletionTime("t0-q"), DeletionTime::kLive);
 }
 
 }  // namespace cassandra

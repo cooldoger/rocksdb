@@ -195,36 +195,73 @@ private:
               CompactionShouldRemoveTombstoneExceedingGCGracePeriod);
 };
 
-class PartitionDeletion;
-typedef std::vector<std::unique_ptr<PartitionDeletion>> PartitionDeletions;
-
-class PartitionDeletion {
-  friend bool operator==(const PartitionDeletion&, const PartitionDeletion&);
+class DeletionTime {
+  friend bool operator==(const DeletionTime&, const DeletionTime&);
 
  public:
-  PartitionDeletion(const Slice& partition_key, int32_t local_deletion_time,
-                    int64_t marked_for_delete_at);
-  PartitionDeletion(const PartitionDeletion& pd);
+  DeletionTime(int32_t local_deletion_time, int64_t marked_for_delete_at)
+      : local_deletion_time_(local_deletion_time),
+        marked_for_delete_at_(marked_for_delete_at) {}
 
-  std::chrono::time_point<std::chrono::system_clock> MarkForDeleteAt() const;
-  std::chrono::time_point<std::chrono::system_clock> LocalDeletionTime() const;
-  const Slice PartitionKey() const;
-  bool Supersedes(std::unique_ptr<PartitionDeletion>& pd) const;
-  static PartitionDeletions Merge(PartitionDeletions&& pds);
-  static PartitionDeletions Deserialize(const char* src, std::size_t size);
-  static void Serialize(PartitionDeletions&& pds, std::string* dest);
-  const static std::size_t kMinSize;
+  std::chrono::time_point<std::chrono::system_clock> MarkForDeleteAt() const {
+    return std::chrono::time_point<std::chrono::system_clock>(
+        std::chrono::microseconds(marked_for_delete_at_));
+  }
+
+  std::chrono::time_point<std::chrono::system_clock> LocalDeletionTime() const {
+    return std::chrono::time_point<std::chrono::system_clock>(
+        std::chrono::seconds(local_deletion_time_));
+  }
+
+  bool Supersedes(const DeletionTime& other) const {
+    return marked_for_delete_at_ > other.marked_for_delete_at_ ||
+           (marked_for_delete_at_ == other.marked_for_delete_at_ &&
+            local_deletion_time_ > other.local_deletion_time_);
+  }
+
+  void Serialize(std::string* dest) const;
+  static const DeletionTime Deserialize(const char* src, std::size_t size);
+  const static size_t kSize;
+  const static DeletionTime kLive;
 
  private:
-  const Slice partition_key_;
   int32_t local_deletion_time_;
   int64_t marked_for_delete_at_;
 };
 
+inline bool operator==(const DeletionTime& x, const DeletionTime& y) {
+  return x.local_deletion_time_ == y.local_deletion_time_ &&
+         x.marked_for_delete_at_ == y.marked_for_delete_at_;
+}
+
+inline bool operator!=(const DeletionTime& x, const DeletionTime& y) {
+  return !(x == y);
+}
+
+class PartitionDeletion;
+typedef std::vector<std::unique_ptr<PartitionDeletion>> PartitionDeletions;
+
+class PartitionDeletion {
+ public:
+  PartitionDeletion(const Slice& partition_key,
+                    const DeletionTime& deletion_time);
+  PartitionDeletion(const PartitionDeletion& pd);
+
+  const DeletionTime& GetDeletionTime() const;
+  const Slice PartitionKey() const;
+  static PartitionDeletions Merge(PartitionDeletions&& pds);
+  static PartitionDeletions Deserialize(const char* src, std::size_t size);
+  static void Serialize(PartitionDeletions&& pds, std::string* dest);
+
+ private:
+  const Slice partition_key_;
+  const DeletionTime deletion_time_;
+  bool Supersedes(std::unique_ptr<PartitionDeletion>& pd) const;
+};
+
 inline bool operator==(const PartitionDeletion& x, const PartitionDeletion& y) {
   return x.PartitionKey() == y.PartitionKey() &&
-         x.local_deletion_time_ == y.local_deletion_time_ &&
-         x.marked_for_delete_at_ == y.marked_for_delete_at_;
+         x.GetDeletionTime() == y.GetDeletionTime();
 }
 
 inline bool operator!=(const PartitionDeletion& x, const PartitionDeletion& y) {

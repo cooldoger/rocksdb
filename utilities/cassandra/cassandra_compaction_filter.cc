@@ -28,10 +28,8 @@ bool CassandraCompactionFilter::ShouldDropByParitionDelete(
   std::chrono::seconds gc_grace_period =
       ignore_range_delete_on_read_ ? std::chrono::seconds(0) : gc_grace_period_;
   auto meta_data = partition_meta_data_.load();
-  auto pd = meta_data->GetPartitionDelete(key);
-
-  return pd != nullptr &&
-         pd->MarkForDeleteAt() > row_timestamp + gc_grace_period;
+  auto deletion_time = meta_data->GetDeletionTime(key);
+  return deletion_time.MarkForDeleteAt() > row_timestamp + gc_grace_period;
 }
 
 CompactionFilter::Decision CassandraCompactionFilter::FilterV2(
