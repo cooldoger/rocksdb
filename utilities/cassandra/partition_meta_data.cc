@@ -13,6 +13,12 @@ DeletionTime PartitionMetaData::GetDeletionTime(const Slice& row_key) const {
   }
 
   Slice token(row_key.data(), token_length_);
+  // do a quick key existing check without hitting disk
+  std::string tmp;
+  if (!db_->KeyMayExist(read_options_, meta_cf_handle_, token, &tmp)) {
+    return DeletionTime::kLive;
+  }
+
   Slice key_wo_token(row_key.data() + token_length_,
                      row_key.size() - token_length_);
   std::string val;
