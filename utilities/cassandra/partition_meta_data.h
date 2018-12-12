@@ -25,7 +25,7 @@ class PartitionMetaData {
   Status DeletePartition(const Slice& partition_key_with_token,
                          int32_t local_deletion_time,
                          int64_t marked_for_delete_at);
-  std::unique_ptr<PartitionDeletion> GetPartitionDelete(const Slice& key) const;
+  DeletionTime GetDeletionTime(const Slice& row_key) const;
 
  private:
   DB* db_;

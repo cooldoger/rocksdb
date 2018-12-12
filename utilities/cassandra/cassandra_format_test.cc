@@ -361,25 +361,38 @@ TEST(RowValueTest, ExpireTtlShouldConvertExpiredColumnsToTombstones) {
   EXPECT_FALSE(changed);
 }
 
+TEST(DeletionTimeTest, Supersedes) {
+  DeletionTime t1(100, 100);
+  DeletionTime t2(100, 101);
+  DeletionTime t3(101, 101);
+  EXPECT_TRUE(t2.Supersedes(t1));
+  EXPECT_TRUE(t3.Supersedes(t2));
+  EXPECT_TRUE(t3.Supersedes(t1));
+  EXPECT_TRUE(t1.Supersedes(DeletionTime::kLive));
+}
+
+TEST(DeletionTimeTest, Equality) {
+  EXPECT_EQ(DeletionTime(100, 101), DeletionTime(100, 101));
+  EXPECT_NE(DeletionTime(100, 101), DeletionTime(100, 102));
+  EXPECT_NE(DeletionTime(100, 101), DeletionTime(99, 101));
+}
+
+TEST(DeletionTimeTest, Serialization) {
+  DeletionTime t(100, 101);
+  std::string val;
+  t.Serialize(&val);
+  EXPECT_EQ(DeletionTime::Deserialize(val.data(), val.size()), t);
+}
+
 std::unique_ptr<PartitionDeletion> pd_make_unique(
     const Slice& slice, int32_t local_deletion_time,
     int64_t marked_for_delete_at) {
-  return std::unique_ptr<PartitionDeletion>(
-      new PartitionDeletion(slice, local_deletion_time, marked_for_delete_at));
+  return std::unique_ptr<PartitionDeletion>(new PartitionDeletion(
+      slice, DeletionTime(local_deletion_time, marked_for_delete_at)));
 }
 
 std::unique_ptr<PartitionDeletion> pd_make_unique(const PartitionDeletion& pd) {
   return std::unique_ptr<PartitionDeletion>(new PartitionDeletion(pd));
-}
-
-TEST(ParitionDeletionTest, Supersedes) {
-  auto pd1 = pd_make_unique(Slice(), 100, 100);
-  auto pd2 = pd_make_unique(Slice(), 100, 101);
-  auto pd3 = pd_make_unique(Slice(), 101, 101);
-
-  EXPECT_TRUE(pd2->Supersedes(pd1));
-  EXPECT_TRUE(pd3->Supersedes(pd2));
-  EXPECT_TRUE(pd3->Supersedes(pd1));
 }
 
 void AssertRoundTrip(PartitionDeletions& pds) {
@@ -412,7 +425,7 @@ TEST(ParitionDeletionTest, MergeEmpty) {
 }
 
 TEST(ParitionDeletionTest, MergeSingle) {
-  PartitionDeletion pd0(Slice("a"), 100, 200);
+  PartitionDeletion pd0(Slice("a"), DeletionTime(100, 200));
   PartitionDeletions pds;
   pds.push_back(pd_make_unique(pd0));
   PartitionDeletions merged = PartitionDeletion::Merge(std::move(pds));
@@ -421,9 +434,9 @@ TEST(ParitionDeletionTest, MergeSingle) {
 }
 
 TEST(ParitionDeletionTest, MergeSinglePKKeepLast) {
-  PartitionDeletion pd0(Slice("a"), 100, 200);
-  PartitionDeletion pd1(Slice("a"), 101, 300);
-  PartitionDeletion pd2(Slice("a"), 100, 300);
+  PartitionDeletion pd0(Slice("a"), DeletionTime(100, 200));
+  PartitionDeletion pd1(Slice("a"), DeletionTime(101, 300));
+  PartitionDeletion pd2(Slice("a"), DeletionTime(100, 300));
 
   PartitionDeletions pds;
   pds.push_back(pd_make_unique(pd0));
@@ -436,10 +449,10 @@ TEST(ParitionDeletionTest, MergeSinglePKKeepLast) {
 }
 
 TEST(ParitionDeletionTest, MergeKeepLastestDeletionPerPK) {
-  PartitionDeletion pd0(Slice("a"), 100, 200);
-  PartitionDeletion pd1(Slice("b"), 100, 200);
-  PartitionDeletion pd2(Slice("a"), 101, 300);
-  PartitionDeletion pd3(Slice("a"), 100, 300);
+  PartitionDeletion pd0(Slice("a"), DeletionTime(100, 200));
+  PartitionDeletion pd1(Slice("b"), DeletionTime(100, 200));
+  PartitionDeletion pd2(Slice("a"), DeletionTime(101, 300));
+  PartitionDeletion pd3(Slice("a"), DeletionTime(100, 300));
   PartitionDeletions pds;
   pds.push_back(pd_make_unique(pd0));
   pds.push_back(pd_make_unique(pd1));
