@@ -71,17 +71,5 @@ int64_t ToMicroSeconds(int64_t seconds) {
 int32_t ToSeconds(int64_t microseconds) {
   return (int32_t)(microseconds / (int64_t)1000000);
 }
-
-std::chrono::time_point<std::chrono::system_clock> TimePointFromSeconds(
-    int64_t t) {
-  return std::chrono::time_point<std::chrono::system_clock>(
-      std::chrono::seconds(t));
-}
-
-std::chrono::time_point<std::chrono::system_clock> TimePointFromMicroSeconds(
-    int64_t t) {
-  return std::chrono::time_point<std::chrono::system_clock>(
-      std::chrono::microseconds(t));
-}
 }
 }
