@@ -21,6 +21,12 @@ class CassandraPartitionMetaDataTest : public testing::Test {
  protected:
   void SetUp() override {
     DestroyDB(kDbName, Options());  // Start each test with a fresh DB
+    StartDB();
+  }
+
+  void TearDown() override { StopDB(); }
+
+  void StartDB() {
     Options options;
     options.create_if_missing = true;
     options.create_missing_column_families = true;
@@ -39,9 +45,10 @@ class CassandraPartitionMetaDataTest : public testing::Test {
     data_cf_handle_ = cf_handles.at(0);
     meta_cf_handle_ = cf_handles.at(1);
     meta_data_ = new PartitionMetaData(db_, meta_cf_handle_, kTokenLength);
+    meta_data_->EnableBloomFilter(16 * 8);
   }
 
-  void TearDown() override {
+  void StopDB() {
     delete meta_data_;
     delete data_cf_handle_;
     delete meta_cf_handle_;
@@ -77,6 +84,15 @@ TEST_F(CassandraPartitionMetaDataTest,
   EXPECT_EQ(meta_data_->GetDeletionTime("t0-q0-c0-"), DeletionTime(200, 201));
   EXPECT_EQ(meta_data_->GetDeletionTime("t0-q0"), DeletionTime(200, 201));
   EXPECT_EQ(meta_data_->GetDeletionTime("t0-q"), DeletionTime::kLive);
+}
+
+TEST_F(CassandraPartitionMetaDataTest, ShouldPersistMetaDataCrossDBRestart) {
+  meta_data_->DeletePartition("t0-p0", 100, 101);
+  meta_data_->DeletePartition("t0-q0", 200, 201);
+  StopDB();
+  StartDB();
+  EXPECT_EQ(meta_data_->GetDeletionTime("t0-p0-c0-"), DeletionTime(100, 101));
+  EXPECT_EQ(meta_data_->GetDeletionTime("t0-q0-c0-"), DeletionTime(200, 201));
 }
 
 }  // namespace cassandra

@@ -7,15 +7,36 @@
 
 namespace rocksdb {
 namespace cassandra {
+
+PartitionMetaData::PartitionMetaData(DB* db, ColumnFamilyHandle* meta_cf_handle,
+                                     size_t token_length)
+    : db_(db),
+      meta_cf_handle_(meta_cf_handle),
+      token_length_(token_length),
+      enable_bloom_(false),
+      bloom_(6, nullptr) {
+  read_options_.ignore_range_deletions = true;
+};
+
+Status PartitionMetaData::EnableBloomFilter(uint32_t bloom_total_bits) {
+  bloom_.SetTotalBits(&arena_, bloom_total_bits, 0, 0, nullptr);
+  rocksdb::Iterator* it = db_->NewIterator(read_options_, meta_cf_handle_);
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    bloom_.Add(it->key());
+  }
+  Status result = it->status();
+  delete it;
+  enable_bloom_ = true;
+  return result;
+}
+
 DeletionTime PartitionMetaData::GetDeletionTime(const Slice& row_key) const {
   if (row_key.size() < token_length_) {
     return DeletionTime::kLive;
   }
 
   Slice token(row_key.data(), token_length_);
-  // do a quick key existing check without hitting disk
-  std::string tmp;
-  if (!db_->KeyMayExist(read_options_, meta_cf_handle_, token, &tmp)) {
+  if (enable_bloom_ && !bloom_.MayContain(token)) {
     return DeletionTime::kLive;
   }
 
@@ -39,6 +60,11 @@ Status PartitionMetaData::DeletePartition(const Slice& partition_key_with_token,
                                           int32_t local_deletion_time,
                                           int64_t marked_for_delete_at) {
   Slice token(partition_key_with_token.data(), token_length_);
+
+  if (enable_bloom_) {
+    bloom_.AddConcurrently(token);
+  }
+
   Slice partition_key(partition_key_with_token.data() + token_length_,
                       partition_key_with_token.size() - token_length_);
   PartitionDeletions pds;
