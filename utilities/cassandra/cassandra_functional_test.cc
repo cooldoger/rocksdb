@@ -58,6 +58,7 @@ class CassandraStore {
     data_cf_handle_ = cf_handles.at(0);
     meta_cf_handle_ = cf_handles.at(1);
     meta_data_ = new PartitionMetaData(db_, meta_cf_handle_, token_length);
+    meta_data_->EnableBloomFilter(16 * 8);
     data_compaction_filter_->SetPartitionMetaData(meta_data_);
   }
 

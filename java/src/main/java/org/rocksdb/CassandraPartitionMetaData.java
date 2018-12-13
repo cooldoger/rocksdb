@@ -15,6 +15,10 @@ public class CassandraPartitionMetaData extends RocksObject {
         rocksdb.getNativeHandle(), metaCfHandle.getNativeHandle(), tokenLength));
   }
 
+  public void enableBloomFilter(int bloomTotalBits) throws RocksDBException {
+    enableBloomFilter(getNativeHandle(), bloomTotalBits);
+  }
+
   public void deletePartition(final byte[] partitonKeyWithToken, int localDeletionTime,
       long markedForDeleteAt) throws RocksDBException {
     deletePartition(getNativeHandle(), partitonKeyWithToken, localDeletionTime, markedForDeleteAt);
@@ -27,4 +31,6 @@ public class CassandraPartitionMetaData extends RocksObject {
 
   protected native void deletePartition(long handle, byte[] partitonKeyWithToken,
       int localDeletionTime, long markedForDeleteAt) throws RocksDBException;
+
+  protected native void enableBloomFilter(long handle, int bloomTotalBits) throws RocksDBException;
 }

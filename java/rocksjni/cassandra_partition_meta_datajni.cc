@@ -65,3 +65,20 @@ Java_org_rocksdb_CassandraPartitionMetaData_deletePartition(
     rocksdb::RocksDBExceptionJni::ThrowNew(env, s);
   }
 }
+
+/*
+ * Class:     org_rocksdb_CassandraPartitionMetaData
+ * Method:    enableBloomFilter
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL
+Java_org_rocksdb_CassandraPartitionMetaData_enableBloomFilter(
+    JNIEnv* env, jobject /*jobj*/, jlong meta_data_pointer,
+    jint bloom_total_bits) {
+  auto* meta_data = reinterpret_cast<rocksdb::cassandra::PartitionMetaData*>(
+      meta_data_pointer);
+  rocksdb::Status s = meta_data->EnableBloomFilter((uint32_t)bloom_total_bits);
+  if (!s.ok()) {
+    rocksdb::RocksDBExceptionJni::ThrowNew(env, s);
+  }
+}
