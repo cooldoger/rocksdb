@@ -68,6 +68,41 @@ Java_org_rocksdb_CassandraPartitionMetaData_deletePartition(
 
 /*
  * Class:     org_rocksdb_CassandraPartitionMetaData
+ * Method:    applyRaw
+ * Signature: (J[B[B)V
+ */
+JNIEXPORT void JNICALL Java_org_rocksdb_CassandraPartitionMetaData_applyRaw(
+    JNIEnv* env, jobject /*obj*/, jlong meta_data_pointer, jbyteArray jkey,
+    jbyteArray jval) {
+  jbyte* key = env->GetByteArrayElements(jkey, nullptr);
+  if (key == nullptr) {
+    // exception thrown: OutOfMemoryError
+    return;
+  }
+  jbyte* val = env->GetByteArrayElements(jval, nullptr);
+  if (val == nullptr) {
+    // exception thrown: OutOfMemoryError
+    return;
+  }
+  rocksdb::Slice key_slice(reinterpret_cast<char*>(key),
+                           env->GetArrayLength(jkey));
+  rocksdb::Slice val_slice(reinterpret_cast<char*>(val),
+                             env->GetArrayLength(jval));
+
+  auto* meta_data = reinterpret_cast<rocksdb::cassandra::PartitionMetaData*>(
+      meta_data_pointer);
+  rocksdb::Status s = meta_data->ApplyRaw(key_slice, val_slice);
+
+  env->ReleaseByteArrayElements(jkey, key, JNI_ABORT);
+  env->ReleaseByteArrayElements(jval, val, JNI_ABORT);
+
+  if (!s.ok()) {
+    rocksdb::RocksDBExceptionJni::ThrowNew(env, s);
+  }
+}
+
+/*
+ * Class:     org_rocksdb_CassandraPartitionMetaData
  * Method:    enableBloomFilter
  * Signature: (JI)V
  */

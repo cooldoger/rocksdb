@@ -95,6 +95,20 @@ TEST_F(CassandraPartitionMetaDataTest, ShouldPersistMetaDataCrossDBRestart) {
   EXPECT_EQ(meta_data_->GetDeletionTime("t0-q0-c0-"), DeletionTime(200, 201));
 }
 
+TEST_F(CassandraPartitionMetaDataTest, ShouldGetPartitionMetaStoredByRawApply) {
+  PartitionDeletions pds;
+  std::string val;
+  pds.push_back(std::unique_ptr<PartitionDeletion>(
+      new PartitionDeletion(Slice("p0"), DeletionTime(100, 101))));
+  pds.push_back(std::unique_ptr<PartitionDeletion>(
+      new PartitionDeletion(Slice("q0"), DeletionTime(200, 201))));
+  PartitionDeletion::Serialize(std::move(pds), &val);
+  Status status = meta_data_->ApplyRaw("t0-", val);
+  assert(status.ok());
+  EXPECT_EQ(meta_data_->GetDeletionTime("t0-p0-c0-"), DeletionTime(100, 101));
+  EXPECT_EQ(meta_data_->GetDeletionTime("t0-q0-c0-"), DeletionTime(200, 201));
+}
+
 }  // namespace cassandra
 }  // namespace rocksdb
 

@@ -24,6 +24,11 @@ public class CassandraPartitionMetaData extends RocksObject {
     deletePartition(getNativeHandle(), partitonKeyWithToken, localDeletionTime, markedForDeleteAt);
   }
 
+  // store raw partition meta data for streaming case
+  public void applyRaw(final byte[] key, final byte[] value) throws RocksDBException {
+    applyRaw(getNativeHandle(), key, value);
+  }
+
   private native static long createCassandraPartitionMetaData0(
       long rocksdb, long metaCfHandle, int tokenLength);
 
@@ -31,6 +36,8 @@ public class CassandraPartitionMetaData extends RocksObject {
 
   protected native void deletePartition(long handle, byte[] partitonKeyWithToken,
       int localDeletionTime, long markedForDeleteAt) throws RocksDBException;
+
+  protected native void applyRaw(long handle, byte[] key, byte[] value) throws RocksDBException;
 
   protected native void enableBloomFilter(long handle, int bloomTotalBits) throws RocksDBException;
 }

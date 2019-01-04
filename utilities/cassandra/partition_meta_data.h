@@ -30,6 +30,9 @@ class PartitionMetaData {
                          int32_t local_deletion_time,
                          int64_t marked_for_delete_at);
 
+  // apply raw partition meta data, useful for streaming case
+  Status ApplyRaw(const Slice& key, const Slice& value);
+
   DeletionTime GetDeletionTime(const Slice& row_key) const;
 
  private:
