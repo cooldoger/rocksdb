@@ -76,5 +76,12 @@ Status PartitionMetaData::DeletePartition(const Slice& partition_key_with_token,
   return db_->Merge(write_option_, meta_cf_handle_, token, val);
 }
 
+Status PartitionMetaData::ApplyRaw(const Slice& key, const Slice& value) {
+  if (enable_bloom_) {
+    bloom_.AddConcurrently(key);
+  }
+  return db_->Merge(write_option_, meta_cf_handle_, key, value);
+}
+
 }  // namespace cassandra
 }  // namespace rocksdb
