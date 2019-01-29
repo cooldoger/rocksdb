@@ -1524,8 +1524,8 @@ class StressTest {
     uint32_t n = shared.GetNumThreads();
 
     now = FLAGS_env->NowMicros();
-    fprintf(stdout, "%s Initializing worker threads\n",
-            FLAGS_env->TimeToString(now / 1000000).c_str());
+    fprintf(stdout, "%s Initializing worker threads, threads: %d\n",
+            FLAGS_env->TimeToString(now / 1000000).c_str(), n);
     std::vector<ThreadState*> threads(n);
     for (uint32_t i = 0; i < n; i++) {
       threads[i] = new ThreadState(i, &shared);
@@ -1969,6 +1969,7 @@ class StressTest {
 #ifndef ROCKSDB_LITE
       if (FLAGS_compact_files_one_in > 0 &&
           thread->rand.Uniform(FLAGS_compact_files_one_in) == 0) {
+        fprintf(stdout, "JJJJ\n");
         auto* random_cf =
             column_families_[thread->rand.Next() % FLAGS_column_families];
         rocksdb::ColumnFamilyMetaData cf_meta_data;
@@ -2002,6 +2003,7 @@ class StressTest {
 
             size_t output_level =
                 std::min(random_level + 1, cf_meta_data.levels.size() - 1);
+            fprintf(stdout, "JJJJ1: start\n");
             auto s =
                 db_->CompactFiles(CompactionOptions(), random_cf, input_files,
                                   static_cast<int>(output_level));
@@ -2012,6 +2014,7 @@ class StressTest {
             } else {
               thread->stats.AddNumCompactFilesSucceed(1);
             }
+            fprintf(stdout, "JJJJ2: end\n");
             break;
           }
         }
