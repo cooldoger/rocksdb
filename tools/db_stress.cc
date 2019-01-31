@@ -2003,7 +2003,7 @@ class StressTest {
 
             size_t output_level =
                 std::min(random_level + 1, cf_meta_data.levels.size() - 1);
-            fprintf(stdout, "JJJJ1: start\n");
+            fprintf(stdout, "((((: start\n");
             auto s =
                 db_->CompactFiles(CompactionOptions(), random_cf, input_files,
                                   static_cast<int>(output_level));
@@ -2014,7 +2014,7 @@ class StressTest {
             } else {
               thread->stats.AddNumCompactFilesSucceed(1);
             }
-            fprintf(stdout, "JJJJ2: end\n");
+            fprintf(stdout, ")))): end\n");
             break;
           }
         }
