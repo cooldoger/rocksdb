@@ -1756,6 +1756,7 @@ Status DBImpl::EnableAutoCompaction(
 
 void DBImpl::MaybeScheduleFlushOrCompaction() {
   mutex_.AssertHeld();
+  fprintf(stdout, "JJJ: maybe compaction");
   if (!opened_successfully_) {
     // Compaction may introduce data race to DB open
     return;
@@ -1818,6 +1819,7 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
     ca->prepicked_compaction = nullptr;
     bg_compaction_scheduled_++;
     unscheduled_compactions_--;
+    fprintf(stdout, "JJJ3: scheduing compaction");
     env_->Schedule(&DBImpl::BGWorkCompaction, ca, Env::Priority::LOW, this,
                    &DBImpl::UnscheduleCallback);
   }
@@ -2154,6 +2156,7 @@ void DBImpl::BackgroundCallCompaction(PrepickedCompaction* prepicked_compaction,
     WaitForIngestFile();
 
     num_running_compactions_++;
+    fprintf(stdout, "JJJ5: running compaction");
 
     auto pending_outputs_inserted_elem =
         CaptureCurrentFileNumberInPendingOutputs();
@@ -2216,6 +2219,7 @@ void DBImpl::BackgroundCallCompaction(PrepickedCompaction* prepicked_compaction,
 
     assert(num_running_compactions_ > 0);
     num_running_compactions_--;
+    fprintf(stdout, "JJJ5: finishing compaction");
     if (bg_thread_pri == Env::Priority::LOW) {
       bg_compaction_scheduled_--;
     } else {
