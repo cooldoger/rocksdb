@@ -21,7 +21,7 @@ public final class SstFileManager extends RocksObject {
   public static final long RATE_BYTES_PER_SEC_DEFAULT = 0;
   public static final boolean DELETE_EXISTING_TRASH_DEFAULT = true;
   public static final double MAX_TRASH_DB_RATION_DEFAULT = 0.25;
-  public static final long BYTES_MAX_DELETE_CHUNK_DEFAULT = 64 * 1024 * 1024;
+  public static final long BYTES_MAX_DELETE_CHUNK_DEFAULT = 0;
 
   /**
    * Create a new SstFileManager that can be shared among multiple RocksDB
