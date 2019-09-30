@@ -9,11 +9,13 @@ sudo rm -f /etc/yum/vars/releasever
 # enable EPEL
 sudo yum -y install epel-release
 
+sudo sed -ri 's/(mirrorlist=http)s/\1/' /etc/yum.repos.d/epel.repo
+
 # install all required packages for rocksdb that are available through yum
 sudo yum -y install openssl java-1.7.0-openjdk-devel zlib-devel bzip2-devel lz4-devel snappy-devel libzstd-devel jemalloc-devel
 
 # install gcc/g++ 4.8.2 from tru/devtools-2
-sudo wget -O /etc/yum.repos.d/devtools-2.repo https://people.centos.org/tru/devtools-2/devtools-2.repo
+sudo wget -O /etc/yum.repos.d/devtools-2.repo http://people.centos.org/tru/devtools-2/devtools-2.repo
 sudo yum -y install devtoolset-2-binutils devtoolset-2-gcc devtoolset-2-gcc-c++
 
 # install gflags
