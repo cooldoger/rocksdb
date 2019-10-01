@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 
-set -e
+set -e -x
 
 # remove fixed relesever variable present in the hanscode boxes
 sudo rm -f /etc/yum/vars/releasever
@@ -21,6 +21,10 @@ sudo yum -y install devtoolset-2-binutils devtoolset-2-gcc devtoolset-2-gcc-c++
 # install gflags
 wget https://github.com/gflags/gflags/archive/v2.0.tar.gz -O gflags-2.0.tar.gz
 tar xvfz gflags-2.0.tar.gz; cd gflags-2.0; scl enable devtoolset-2 ./configure; scl enable devtoolset-2 make; sudo make install
+
+sudo yum -y install cmake3
+sudo ln /usr/bin/cmake3 /usr/bin/cmake
+
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 # set java home so we can build rocksdb jars
