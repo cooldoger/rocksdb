@@ -14,7 +14,7 @@ PartitionMetaData::PartitionMetaData(DB* db, ColumnFamilyHandle* meta_cf_handle,
       meta_cf_handle_(meta_cf_handle),
       token_length_(token_length),
       enable_bloom_(false),
-      bloom_(6, nullptr) {
+      bloom_(6) {
   read_options_.ignore_range_deletions = true;
 };
 

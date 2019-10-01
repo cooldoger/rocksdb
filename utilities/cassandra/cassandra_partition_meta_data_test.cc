@@ -4,7 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 #include <memory>
-#include "util/testharness.h"
+#include "test_util/testharness.h"
 #include "utilities/cassandra/merge_operator.h"
 #include "utilities/cassandra/partition_meta_data.h"
 #include "utilities/cassandra/test_utils.h"
