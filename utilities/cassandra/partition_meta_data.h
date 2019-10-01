@@ -6,7 +6,7 @@
 #pragma once
 #include "rocksdb/db.h"
 #include "rocksdb/slice.h"
-#include "util/arena.h"
+#include "memory/arena.h"
 #include "util/dynamic_bloom.h"
 #include "utilities/cassandra/format.h"
 namespace rocksdb {
