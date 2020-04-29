@@ -11,17 +11,17 @@
 /*
  * Class:     org_rocksdb_CassandraPartitionMetaData
  * Method:    createCassandraPartitionMetaData0
- * Signature: (JJI)J
+ * Signature: (JJII)J
  */
 JNIEXPORT jlong JNICALL
 Java_org_rocksdb_CassandraPartitionMetaData_createCassandraPartitionMetaData0(
     JNIEnv* /*env*/, jclass /*jcls*/, jlong db_pointer,
-    jlong meta_cf_hande_pointer, jint token_length) {
+    jlong meta_cf_hande_pointer, jint token_length, jint bloom_total_bits) {
   auto* db = reinterpret_cast<rocksdb::DB*>(db_pointer);
   auto* meta_cf_handle =
       reinterpret_cast<rocksdb::ColumnFamilyHandle*>(meta_cf_hande_pointer);
   auto* meta_data = new rocksdb::cassandra::PartitionMetaData(
-      db, meta_cf_handle, token_length);
+      db, meta_cf_handle, token_length, (uint32_t)bloom_total_bits);
   return reinterpret_cast<jlong>(meta_data);
 }
 
@@ -104,15 +104,14 @@ JNIEXPORT void JNICALL Java_org_rocksdb_CassandraPartitionMetaData_applyRaw(
 /*
  * Class:     org_rocksdb_CassandraPartitionMetaData
  * Method:    enableBloomFilter
- * Signature: (JI)V
+ * Signature: (J)V
  */
 JNIEXPORT void JNICALL
 Java_org_rocksdb_CassandraPartitionMetaData_enableBloomFilter(
-    JNIEnv* env, jobject /*jobj*/, jlong meta_data_pointer,
-    jint bloom_total_bits) {
+    JNIEnv* env, jobject /*jobj*/, jlong meta_data_pointer) {
   auto* meta_data = reinterpret_cast<rocksdb::cassandra::PartitionMetaData*>(
       meta_data_pointer);
-  rocksdb::Status s = meta_data->EnableBloomFilter((uint32_t)bloom_total_bits);
+  rocksdb::Status s = meta_data->EnableBloomFilter();
   if (!s.ok()) {
     rocksdb::RocksDBExceptionJni::ThrowNew(env, s);
   }

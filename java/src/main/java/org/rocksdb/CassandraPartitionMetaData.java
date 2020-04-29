@@ -10,13 +10,13 @@ package org.rocksdb;
  */
 public class CassandraPartitionMetaData extends RocksObject {
   public CassandraPartitionMetaData(
-      RocksDB rocksdb, ColumnFamilyHandle metaCfHandle, int tokenLength) {
+      RocksDB rocksdb, ColumnFamilyHandle metaCfHandle, int tokenLength, int bloomTotalBits) {
     super(createCassandraPartitionMetaData0(
-        rocksdb.getNativeHandle(), metaCfHandle.getNativeHandle(), tokenLength));
+        rocksdb.getNativeHandle(), metaCfHandle.getNativeHandle(), tokenLength, bloomTotalBits));
   }
 
-  public void enableBloomFilter(int bloomTotalBits) throws RocksDBException {
-    enableBloomFilter(getNativeHandle(), bloomTotalBits);
+  public void enableBloomFilter() throws RocksDBException {
+    enableBloomFilter(getNativeHandle());
   }
 
   public void deletePartition(final byte[] partitonKeyWithToken, int localDeletionTime,
@@ -30,7 +30,7 @@ public class CassandraPartitionMetaData extends RocksObject {
   }
 
   private native static long createCassandraPartitionMetaData0(
-      long rocksdb, long metaCfHandle, int tokenLength);
+      long rocksdb, long metaCfHandle, int tokenLength, int bloomTotalBits);
 
   @Override protected final native void disposeInternal(final long handle);
 
@@ -39,5 +39,5 @@ public class CassandraPartitionMetaData extends RocksObject {
 
   protected native void applyRaw(long handle, byte[] key, byte[] value) throws RocksDBException;
 
-  protected native void enableBloomFilter(long handle, int bloomTotalBits) throws RocksDBException;
+  protected native void enableBloomFilter(long handle) throws RocksDBException;
 }

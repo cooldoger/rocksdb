@@ -129,11 +129,11 @@ TEST(TombstoneTest, TombstoneCollectable) {
   EXPECT_TRUE(Tombstone(ColumnTypeMask::DELETION_MASK, 0,
                         now - gc_grace_seconds - time_delta_seconds,
                         ToMicroSeconds(now - gc_grace_seconds - time_delta_seconds))
-                  .Collectable(gc_grace_seconds));
+                  .Collectable(std::chrono::seconds(gc_grace_seconds)));
   EXPECT_FALSE(Tombstone(ColumnTypeMask::DELETION_MASK, 0,
                          now - gc_grace_seconds + time_delta_seconds,
                          ToMicroSeconds(now - gc_grace_seconds + time_delta_seconds))
-                   .Collectable(gc_grace_seconds));
+                   .Collectable(std::chrono::seconds(gc_grace_seconds)));
 }
 
 TEST(TombstoneTest, Tombstone) {

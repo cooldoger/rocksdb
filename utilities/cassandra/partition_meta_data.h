@@ -19,12 +19,12 @@ namespace cassandra {
 class PartitionMetaData {
  public:
   PartitionMetaData(DB* db, ColumnFamilyHandle* meta_cf_handle,
-                    size_t token_length);
+                    size_t token_length, uint32_t bloom_total_bits_);
 
   // Enable meta key bloom filter to filter out none exists key
   // quickly. This helps boost performance when number of deleted
   // partition key is only fraction of number of all keys
-  Status EnableBloomFilter(uint32_t bloom_total_bits_);
+  Status EnableBloomFilter();
 
   Status DeletePartition(const Slice& partition_key_with_token,
                          int32_t local_deletion_time,
@@ -40,8 +40,8 @@ class PartitionMetaData {
   ColumnFamilyHandle* meta_cf_handle_;
   size_t token_length_;
   bool enable_bloom_;
-  DynamicBloom bloom_;
   Arena arena_;
+  DynamicBloom bloom_;
   ReadOptions read_options_;
   WriteOptions write_option_;
 };
