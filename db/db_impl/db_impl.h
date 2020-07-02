@@ -986,6 +986,12 @@ class DBImpl : public DB {
   }
 #endif  // NDEBUG
 
+  // persist stats to column family "_persistent_stats"
+  void PersistStats();
+
+  // dump rocksdb.stats to LOG
+  void DumpStats();
+
  protected:
   const std::string dbname_;
   std::string db_id_;
@@ -1625,12 +1631,6 @@ class DBImpl : public DB {
   void PrintStatistics();
 
   size_t EstimateInMemoryStatsHistorySize() const;
-
-  // persist stats to column family "_persistent_stats"
-  void PersistStats();
-
-  // dump rocksdb.stats to LOG
-  void DumpStats();
 
   // Return the minimum empty level that could hold the total data in the
   // input level. Return the input level, if such level could not be found.

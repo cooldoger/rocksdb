@@ -19,8 +19,10 @@
 #include "monitoring/persistent_stats_history.h"
 #include "options/options_helper.h"
 #include "rocksdb/wal_filter.h"
+#include "monitoring/stats_dump_scheduler_impl.h"
 #include "table/block_based/block_based_table_factory.h"
 #include "test_util/sync_point.h"
+#include "util/cast_util.h"
 #include "util/rate_limiter.h"
 
 namespace ROCKSDB_NAMESPACE {
@@ -1699,6 +1701,12 @@ Status DBImpl::Open(const DBOptions& db_options, const std::string& dbname,
     // WAL write failures and resultant forced flushes
     sfm->ReserveDiskBuffer(max_write_buffer_size,
                            impl->immutable_db_options_.db_paths[0].path);
+  }
+
+  auto scheduler = impl->immutable_db_options_.stats_dump_scheduler;
+
+  if (!scheduler) {
+    scheduler->Register(impl);
   }
 #endif  // !ROCKSDB_LITE
 

@@ -26,6 +26,7 @@ struct ImmutableDBOptions {
   std::shared_ptr<FileSystem> fs;
   std::shared_ptr<RateLimiter> rate_limiter;
   std::shared_ptr<SstFileManager> sst_file_manager;
+  std::shared_ptr<StatsDumpScheduler> stats_dump_scheduler;
   std::shared_ptr<Logger> info_log;
   InfoLogLevel info_log_level;
   int max_file_opening_threads;

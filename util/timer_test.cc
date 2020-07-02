@@ -17,6 +17,37 @@ class TimerTest : public testing::Test {
   std::unique_ptr<MockTimeEnv> mock_env_;
 };
 
+TEST_F(TimerTest, ThreadTest) {
+  Options options;
+  options.stats_dump_period_sec = 1;
+  options.create_if_missing = true;
+  DB* db;
+
+  std::cout << "test start" << std::endl;
+
+  // Open DB
+  Status s = DB::Open(options, "/tmp/db_test", &db);
+  ASSERT_TRUE(s.ok());
+
+  // Add data
+  db->Put(WriteOptions(), "k1", "val1");
+
+  // Read data
+  std::string res;
+  db->Get(ReadOptions(), "k1", &res);
+  std::cout << res << std::endl;
+
+  std::cout << "ref count: " << options.stats_dump_scheduler.use_count() << std::endl;
+  std::cout << "end" << std::endl;
+
+  std::cout << "sleep done" << std::endl;
+
+  db->SetDBOptions({{"stats_dump_period_sec", "3"}});
+  std::this_thread::sleep_for(std::chrono::seconds(10));
+
+  delete db;
+}
+
 TEST_F(TimerTest, SingleScheduleOnceTest) {
   const uint64_t kSecond = 1000000;  // 1sec = 1000000us
   const int kIterations = 1;
@@ -219,6 +250,31 @@ TEST_F(TimerTest, DISABLED_MultipleScheduleRepeatedlyTest) {
 
   ASSERT_EQ(count1, 5);
   ASSERT_EQ(count2, 5);
+}
+
+TEST_F(TimerTest, TimerTest1) {
+  const uint64_t kSecond = 1000000;  // 1sec = 1000000us
+  uint64_t time_counter = 0;
+  Timer timer(Env::Default());
+
+  ASSERT_TRUE(timer.Start());
+  std::cout << "start" << std::endl;
+  std::cout << "sleep 1" << std::endl;
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  std::cout << "end sleep 1" << std::endl;
+  timer.Add(
+      [] {
+    fprintf(stdout, "hello\n");
+  },
+      "test1",
+      0,
+      1 * kSecond);
+
+  std::cout << "sleep 10" << std::endl;
+  std::this_thread::sleep_for(std::chrono::seconds(10));
+  std::cout << "end sleep 10" << std::endl;
+  ASSERT_TRUE(timer.Shutdown());
+
 }
 
 }  // namespace ROCKSDB_NAMESPACE

@@ -864,6 +864,7 @@ Status DBImpl::GetStatsHistory(
 }
 
 void DBImpl::DumpStats() {
+  fprintf(stdout, "JJJJ\n");
   TEST_SYNC_POINT("DBImpl::DumpStats:1");
 #ifndef ROCKSDB_LITE
   const DBPropertyInfo* cf_property_info =

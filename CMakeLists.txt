@@ -650,6 +650,7 @@ set(SOURCES
         monitoring/perf_level.cc
         monitoring/persistent_stats_history.cc
         monitoring/statistics.cc
+        monitoring/stats_dump_scheduler_impl.cc
         monitoring/thread_status_impl.cc
         monitoring/thread_status_updater.cc
         monitoring/thread_status_util.cc

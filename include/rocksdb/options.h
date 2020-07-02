@@ -23,6 +23,7 @@
 #include "rocksdb/file_checksum.h"
 #include "rocksdb/listener.h"
 #include "rocksdb/sst_partitioner.h"
+#include "rocksdb/stats_dump_scheduler.h"
 #include "rocksdb/universal_compaction.h"
 #include "rocksdb/version.h"
 #include "rocksdb/write_buffer_manager.h"
@@ -714,6 +715,8 @@ struct DBOptions {
   // When peristing stats to disk, the stat name will be limited at 100 bytes.
   // Default: false
   bool persist_stats_to_disk = false;
+
+  std::shared_ptr<StatsDumpScheduler> stats_dump_scheduler = StatsDumpScheduler::Default(env);
 
   // if not zero, periodically take stats snapshots and store in memory, the
   // memory size for stats snapshots is capped at stats_history_buffer_size

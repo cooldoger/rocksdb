@@ -53,9 +53,12 @@ class Timer {
         env_->NowMicros() + start_after_us,
         repeat_every_us));
 
+    fprintf(stdout, "Add: locking\n");
     MutexLock l(&mutex_);
     heap_.push(fn_info.get());
     map_.emplace(std::make_pair(fn_name, std::move(fn_info)));
+    cond_var_.SignalAll();
+    fprintf(stdout, "Add: unlocking\n");
   }
 
   void Cancel(const std::string& fn_name) {
@@ -107,7 +110,8 @@ class Timer {
  private:
 
   void Run() {
-    MutexLock l(&mutex_);
+    fprintf(stdout, "run: locking\n");
+    mutex_.Lock();
 
     while (running_) {
       if (heap_.empty()) {
@@ -126,7 +130,9 @@ class Timer {
 
       if (current_fn->next_run_time_us <= env_->NowMicros()) {
         // Execute the work
+        mutex_.Unlock();
         current_fn->fn();
+        mutex_.Lock();
 
         // Remove the work from the heap once it is done executing.
         // Note that we are just removing the pointer from the heap. Its
@@ -145,6 +151,8 @@ class Timer {
         cond_var_.TimedWait(current_fn->next_run_time_us);
       }
     }
+    mutex_.Unlock();
+    fprintf(stdout, "run: unlocking\n");
   }
 
   void CancelAllWithLock() {
