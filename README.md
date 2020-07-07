@@ -1,5 +1,6 @@
 ## RocksDB: A Persistent Key-Value Store for Flash and RAM Storage
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/f7d8b70232424e89a6fb5b200079f6f5)](https://app.codacy.com/manual/jay-zhuang/rocksdb?utm_source=github.com&utm_medium=referral&utm_content=jay-zhuang/rocksdb&utm_campaign=Badge_Grade_Dashboard)
 [![Linux/Mac Build Status](https://travis-ci.org/facebook/rocksdb.svg?branch=master)](https://travis-ci.org/facebook/rocksdb)
 [![Windows Build status](https://ci.appveyor.com/api/projects/status/fbgfu0so3afcno78/branch/master?svg=true)](https://ci.appveyor.com/project/Facebook/rocksdb/branch/master)
 [![PPC64le Build Status](http://140.211.168.68:8080/buildStatus/icon?job=Rocksdb)](http://140.211.168.68:8080/job/Rocksdb)
