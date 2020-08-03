@@ -439,11 +439,12 @@ void DBImpl::CancelAllBackgroundWork(bool wait) {
   ROCKS_LOG_INFO(immutable_db_options_.info_log,
                  "Shutdown: canceling all background work");
 
-  InstrumentedMutexLock l(&mutex_);
   fprintf(stdout, "DB: Unregister\n");
   if (stats_dump_scheduler_ != nullptr) {
     stats_dump_scheduler_->Unregister(this);
   }
+
+  InstrumentedMutexLock l(&mutex_);
   if (!shutting_down_.load(std::memory_order_acquire) &&
       has_unpersisted_data_.load(std::memory_order_relaxed) &&
       !mutable_db_options_.avoid_flush_during_shutdown) {
@@ -676,13 +677,19 @@ void DBImpl::PrintStatistics() {
 }
 
 void DBImpl::StartTimedTasks() {
-  InstrumentedMutexLock l(&mutex_);
-  if (mutable_db_options_.stats_dump_period_sec > 0 || mutable_db_options_.stats_persist_period_sec > 0) {
-    if (stats_dump_scheduler_ == nullptr) {
-      stats_dump_scheduler_ = StatsDumpScheduler::Default(env_);
+  {
+    InstrumentedMutexLock l(&mutex_);
+    if (mutable_db_options_.stats_dump_period_sec > 0 ||
+        mutable_db_options_.stats_persist_period_sec > 0) {
+      if (stats_dump_scheduler_ == nullptr) {
+        stats_dump_scheduler_ = StatsDumpScheduler::Default(env_);
+      }
+      fprintf(stdout, "DB: count %ld \n", stats_dump_scheduler_.use_count());
     }
+  }
+
+  if (stats_dump_scheduler_ != nullptr) {
     stats_dump_scheduler_->Register(this, mutable_db_options_.stats_dump_period_sec, mutable_db_options_.stats_persist_period_sec);
-    fprintf(stdout, "DB: count %ld \n", stats_dump_scheduler_.use_count());
   }
 }
 
@@ -841,7 +848,7 @@ Status DBImpl::GetStatsHistory(
 }
 
 void DBImpl::DumpStats() {
-  fprintf(stdout, "JJJJ\n");
+  fprintf(stdout, "JJJJJJ\n");
   TEST_SYNC_POINT("DBImpl::DumpStats:1");
 #ifndef ROCKSDB_LITE
   const DBPropertyInfo* cf_property_info =
@@ -1066,14 +1073,20 @@ Status DBImpl::SetDBOptions(
           new_options.stats_persist_period_sec !=
           mutable_db_options_.stats_persist_period_sec) {
         if (stats_dump_scheduler_) {
+          mutex_.Unlock();
           stats_dump_scheduler_->Unregister(this);
+          mutex_.Lock();
         }
         if (new_options.stats_dump_period_sec > 0 ||
             new_options.stats_persist_period_sec > 0) {
           if (stats_dump_scheduler_ == nullptr) {
             stats_dump_scheduler_ = StatsDumpScheduler::Default(env_);
           }
-          stats_dump_scheduler_->Register(this, mutable_db_options_.stats_dump_period_sec, mutable_db_options_.stats_persist_period_sec);
+          mutex_.Unlock();
+          stats_dump_scheduler_->Register(this, new_options.stats_dump_period_sec, new_options.stats_persist_period_sec);
+          mutex_.Lock();
+        } else {
+          stats_dump_scheduler_ = nullptr;
         }
       }
       write_controller_.set_max_delayed_write_rate(
