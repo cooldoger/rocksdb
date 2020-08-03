@@ -70,6 +70,7 @@ class ArenaWrappedDBIter;
 class InMemoryStatsHistoryIterator;
 class MemTable;
 class PersistentStatsHistoryIterator;
+class StatsDumpScheduler;
 class TableCache;
 class TaskLimiterToken;
 class Version;
@@ -1000,6 +1001,12 @@ class DBImpl : public DB {
   }
 #endif  // NDEBUG
 
+  // persist stats to column family "_persistent_stats"
+  void PersistStats();
+
+  // dump rocksdb.stats to LOG
+  void DumpStats();
+
  protected:
   const std::string dbname_;
   std::string db_id_;
@@ -1641,12 +1648,6 @@ class DBImpl : public DB {
 
   size_t EstimateInMemoryStatsHistorySize() const;
 
-  // persist stats to column family "_persistent_stats"
-  void PersistStats();
-
-  // dump rocksdb.stats to LOG
-  void DumpStats();
-
   // Return the minimum empty level that could hold the total data in the
   // input level. Return the input level, if such level could not be found.
   int FindMinimumEmptyLevelFitting(ColumnFamilyData* cfd,
@@ -2092,13 +2093,8 @@ class DBImpl : public DB {
   // Only to be set during initialization
   std::unique_ptr<PreReleaseCallback> recoverable_state_pre_release_callback_;
 
-  // handle for scheduling stats dumping at fixed intervals
   // REQUIRES: mutex locked
-  std::unique_ptr<ROCKSDB_NAMESPACE::RepeatableThread> thread_dump_stats_;
-
-  // handle for scheduling stats snapshoting at fixed intervals
-  // REQUIRES: mutex locked
-  std::unique_ptr<ROCKSDB_NAMESPACE::RepeatableThread> thread_persist_stats_;
+  std::shared_ptr<ROCKSDB_NAMESPACE::StatsDumpScheduler> stats_dump_scheduler_;
 
   // When set, we use a separate queue for writes that don't write to memtable.
   // In 2PC these are the writes at Prepare phase.

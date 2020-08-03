@@ -28,9 +28,24 @@ namespace ROCKSDB_NAMESPACE {
 
 class StatsHistoryTest : public DBTestBase {
  public:
-  StatsHistoryTest() : DBTestBase("/stats_history_test") {}
+  StatsHistoryTest() : DBTestBase("/stats_history_test"),
+                       mock_env_(new MockTimeEnv(Env::Default())) {}
+
+ protected:
+  std::unique_ptr<MockTimeEnv> mock_env_;
 };
 #ifndef ROCKSDB_LITE
+
+TEST_F(StatsHistoryTest, RunTest1) {
+  Options options;
+  options.create_if_missing = true;
+  options.stats_dump_period_sec = 5;
+  mock_env_->set_current_time(1);  // in seconds
+  options.env = mock_env_.get();
+  Reopen(options);
+  sleep(10);
+  Close();
+}
 
 TEST_F(StatsHistoryTest, RunStatsDumpPeriodSec) {
   Options options;
@@ -52,12 +67,29 @@ TEST_F(StatsHistoryTest, RunStatsDumpPeriodSec) {
         }
       });
 #endif  // OS_MACOSX && !NDEBUG
+  port::Mutex mutex;
+  port::CondVar test_cv(&mutex);
   ROCKSDB_NAMESPACE::SyncPoint::GetInstance()->SetCallBack(
-      "DBImpl::DumpStats:1", [&](void* /*arg*/) { counter++; });
+      "DBImpl::DumpStats:1", [&](void* /*arg*/) {
+        MutexLock l(&mutex);
+        counter++;
+        if (counter >= 1) {
+          test_cv.SignalAll();
+        }
+      });
   ROCKSDB_NAMESPACE::SyncPoint::GetInstance()->EnableProcessing();
   Reopen(options);
   ASSERT_EQ(5u, dbfull()->GetDBOptions().stats_dump_period_sec);
-  dbfull()->TEST_WaitForDumpStatsRun([&] { mock_env->set_current_time(5); });
+  // dbfull()->TEST_WaitForDumpStatsRun([&] { mock_env->set_current_time(5); });
+  uint64_t timer_counter = 0;
+  {
+    MutexLock l(&mutex);
+    while (counter <= 1) {
+      timer_counter += 1000000;
+      mock_env->set_current_time(timer_counter);
+      test_cv.TimedWait(timer_counter);
+    }
+  }
   ASSERT_GE(counter, 1);
 
   // Test cacel job through SetOptions

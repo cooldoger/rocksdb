@@ -58,6 +58,7 @@ class Timer {
     heap_.push(fn_info.get());
     map_.emplace(std::make_pair(fn_name, std::move(fn_info)));
     cond_var_.Signal();
+    fprintf(stdout, "Add: unlocking\n");
   }
 
   void Cancel(const std::string& fn_name) {
@@ -97,7 +98,8 @@ class Timer {
       }
       CancelAllWithLock();
       running_ = false;
-      cond_var_.SignalAll();
+      fprintf(stdout, "shutdown\n");
+      cond_var_.Signal();
     }
 
     if (thread_) {
@@ -127,6 +129,7 @@ class Timer {
         continue;
       }
 
+      fprintf(stdout, "-- run: %s, %llu\n", current_fn->name.c_str(), current_fn->next_run_time_us);
       if (current_fn->next_run_time_us <= env_->NowMicros()) {
         // Execute the work
         current_fn->fn();
@@ -145,9 +148,11 @@ class Timer {
           heap_.push(current_fn);
         }
       } else {
+        fprintf(stdout, "-- run: wait\n");
         cond_var_.TimedWait(current_fn->next_run_time_us);
       }
     }
+    fprintf(stdout, "run: unlocking\n");
   }
 
   void CancelAllWithLock() {

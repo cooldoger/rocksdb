@@ -271,20 +271,21 @@ size_t DBImpl::TEST_GetWalPreallocateBlockSize(
   return GetWalPreallocateBlockSize(write_buffer_size);
 }
 
-void DBImpl::TEST_WaitForDumpStatsRun(std::function<void()> callback) const {
-  if (thread_dump_stats_ != nullptr) {
-    thread_dump_stats_->TEST_WaitForRun(callback);
-  }
+void DBImpl::TEST_WaitForDumpStatsRun(std::function<void()> /*callback*/) const {
+//  if (thread_dump_stats_ != nullptr) {
+//    thread_dump_stats_->TEST_WaitForRun(callback);
+//  }
 }
 
-void DBImpl::TEST_WaitForPersistStatsRun(std::function<void()> callback) const {
-  if (thread_persist_stats_ != nullptr) {
-    thread_persist_stats_->TEST_WaitForRun(callback);
-  }
+void DBImpl::TEST_WaitForPersistStatsRun(std::function<void()> /*callback*/) const {
+//  if (thread_persist_stats_ != nullptr) {
+//    thread_persist_stats_->TEST_WaitForRun(callback);
+//  }
 }
 
 bool DBImpl::TEST_IsPersistentStatsEnabled() const {
-  return thread_persist_stats_ && thread_persist_stats_->IsRunning();
+//  return thread_persist_stats_ && thread_persist_stats_->IsRunning();
+    return true;
 }
 
 size_t DBImpl::TEST_EstimateInMemoryStatsHistorySize() const {
