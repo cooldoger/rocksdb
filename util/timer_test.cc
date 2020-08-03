@@ -239,6 +239,7 @@ TEST_F(TimerTest, MultipleScheduleRepeatedlyTest) {
 
 TEST_F(TimerTest, AddAfterStartTest) {
   const int kIterations = 5;
+
   InstrumentedMutex mutex;
   InstrumentedCondVar test_cv(&mutex);
 
