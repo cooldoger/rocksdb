@@ -271,11 +271,6 @@ size_t DBImpl::TEST_GetWalPreallocateBlockSize(
   return GetWalPreallocateBlockSize(write_buffer_size);
 }
 
-bool DBImpl::TEST_IsPersistentStatsEnabled() const {
-//  return thread_persist_stats_ && thread_persist_stats_->IsRunning();
-    return true;
-}
-
 size_t DBImpl::TEST_EstimateInMemoryStatsHistorySize() const {
   return EstimateInMemoryStatsHistorySize();
 }

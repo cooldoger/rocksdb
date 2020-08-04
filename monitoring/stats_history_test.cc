@@ -125,20 +125,43 @@ TEST_F(StatsHistoryTest, StatsPersistScheduling) {
         }
       });
 #endif  // OS_MACOSX && !NDEBUG
+
+  port::Mutex mutex;
+  port::CondVar test_cv(&mutex);
   int counter = 0;
   ROCKSDB_NAMESPACE::SyncPoint::GetInstance()->SetCallBack(
-      "DBImpl::PersistStats:Entry", [&](void* /*arg*/) { counter++; });
+      "DBImpl::PersistStats:Entry", [&](void* /*arg*/) {
+        MutexLock l(&mutex);
+        counter++;
+        if (counter >= 1) {
+          test_cv.SignalAll();
+        }
+      });
   ROCKSDB_NAMESPACE::SyncPoint::GetInstance()->EnableProcessing();
   Reopen(options);
   ASSERT_EQ(5u, dbfull()->GetDBOptions().stats_persist_period_sec);
-  // dbfull()->TEST_WaitForPersistStatsRun([&] { mock_env->set_current_time(5); });
-  mock_env->set_current_time(5);
+  // Wait for stats_dump to run
+  uint64_t timer_counter = 0;
+  {
+    MutexLock l(&mutex);
+    while (counter <= 1) {
+      timer_counter++;
+//      fprintf(stdout, "main: set time %llu\n", timer_counter);
+      mock_env->set_current_time(timer_counter);
+      test_cv.TimedWait(timer_counter);
+    }
+  }
   ASSERT_GE(counter, 1);
 
   // Test cacel job through SetOptions
-  ASSERT_TRUE(dbfull()->TEST_IsPersistentStatsEnabled());
   ASSERT_OK(dbfull()->SetDBOptions({{"stats_persist_period_sec", "0"}}));
-  ASSERT_FALSE(dbfull()->TEST_IsPersistentStatsEnabled());
+  int old_val = counter;
+  uint64_t now = mock_env->NowMicros() / 1000000;
+  for (int i = 1; i < 20; ++i) {
+    mock_env->set_current_time(i + now);
+  }
+  ASSERT_EQ(counter, old_val);
+
   Close();
 }
 
@@ -169,7 +192,6 @@ TEST_F(StatsHistoryTest, PersistentStatsFreshInstall) {
   Reopen(options);
   ASSERT_OK(dbfull()->SetDBOptions({{"stats_persist_period_sec", "5"}}));
   ASSERT_EQ(5u, dbfull()->GetDBOptions().stats_persist_period_sec);
-  // dbfull()->TEST_WaitForPersistStatsRun([&] { mock_env->set_current_time(5); });
   ASSERT_GE(counter, 1);
   Close();
 }
