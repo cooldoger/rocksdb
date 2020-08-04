@@ -281,6 +281,25 @@ TEST_F(TimerTest, AddAfterStartTest) {
   ASSERT_EQ(kIterations, count);
 }
 
+TEST_F(TimerTest, MainTest) {
+  InstrumentedMutex mutex;
+  InstrumentedCondVar test_cv(&mutex);
+
+  mock_env_->set_current_time(0);
+  Timer timer(mock_env_.get());
+
+  std::thread t1([&]() {
+    std::cout << "hi" << std::endl;
+    InstrumentedMutexLock l(&mutex);
+    test_cv.TimedWait(2000000);
+    std::cout << "done wait" << std::endl;
+  });
+
+  std::cout << "main: before join" << std::endl;
+  t1.join();
+  std::cout << "main: done" << std::endl;
+}
+
 }  // namespace ROCKSDB_NAMESPACE
 
 int main(int argc, char** argv) {
