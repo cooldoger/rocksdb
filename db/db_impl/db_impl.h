@@ -989,8 +989,6 @@ class DBImpl : public DB {
   int TEST_BGCompactionsAllowed() const;
   int TEST_BGFlushesAllowed() const;
   size_t TEST_GetWalPreallocateBlockSize(uint64_t write_buffer_size) const;
-  void TEST_WaitForDumpStatsRun(std::function<void()> callback) const;
-  void TEST_WaitForPersistStatsRun(std::function<void()> callback) const;
   bool TEST_IsPersistentStatsEnabled() const;
   size_t TEST_EstimateInMemoryStatsHistorySize() const;
 

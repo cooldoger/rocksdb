@@ -20,7 +20,7 @@ StatsDumpScheduler::StatsDumpScheduler(Env* env) {
 
 StatsDumpScheduler::~StatsDumpScheduler() {
   fprintf(stdout, "SS: deleting\n");
-  if (!timer) {
+  if (timer) {
     timer->Shutdown();
     delete timer;
   }
@@ -32,10 +32,11 @@ void StatsDumpScheduler::Register(DB* db, unsigned int stats_dump_period_sec,
   DBImpl* dbi = static_cast_with_check<DBImpl>(db);
 
   if (stats_dump_period_sec > 0) {
-    fprintf(stdout, "SS: register2\n");
+    fprintf(stdout, "SS: register dump_st\n");
     timer->Add([dbi]() { dbi->DumpStats(); }, GetTaskName(dbi, "dump_st"), 0, stats_dump_period_sec * 1e6);
   }
   if (stats_persist_period_sec > 0) {
+    fprintf(stdout, "SS: register pst_st\n");
     timer->Add([dbi]() { dbi->PersistStats(); }, GetTaskName(dbi, "pst_st"), 0, stats_persist_period_sec * 1e6);
   }
 }

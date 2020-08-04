@@ -48,14 +48,14 @@ class Timer {
            const std::string& fn_name,
            uint64_t start_after_us,
            uint64_t repeat_every_us) {
-    std::unique_ptr<FunctionInfo> fn_info(new FunctionInfo(
+    auto fn_info = std::make_shared<FunctionInfo>(
         std::move(fn),
         fn_name,
         env_->NowMicros() + start_after_us,
-        repeat_every_us));
+        repeat_every_us);
 
     InstrumentedMutexLock l(&mutex_);
-    heap_.push(fn_info.get());
+    heap_.push(fn_info);
     map_.emplace(std::make_pair(fn_name, std::move(fn_info)));
     cond_var_.Signal();
     fprintf(stdout, "Add: unlocking\n");
@@ -121,11 +121,12 @@ class Timer {
         continue;
       }
 
-      FunctionInfo* current_fn = heap_.top();
+      auto current_fn = heap_.top();
 
       if (!current_fn->IsValid()) {
         heap_.pop();
         map_.erase(current_fn->name);
+        fprintf(stdout, "-- run: erasing %s, (heap size: %lu, map: %lu)\n", current_fn->name.c_str(), heap_.size(), map_.size());
         continue;
       }
 
@@ -203,8 +204,8 @@ class Timer {
   };
 
   struct RunTimeOrder {
-    bool operator()(const FunctionInfo* f1,
-                    const FunctionInfo* f2) {
+    bool operator()(std::shared_ptr<FunctionInfo> f1,
+                    std::shared_ptr<FunctionInfo> f2) {
       return f1->next_run_time_us > f2->next_run_time_us;
     }
   };
@@ -218,13 +219,13 @@ class Timer {
   bool running_;
 
 
-  std::priority_queue<FunctionInfo*,
-                      std::vector<FunctionInfo*>,
+  std::priority_queue<std::shared_ptr<FunctionInfo>,
+                      std::vector<std::shared_ptr<FunctionInfo>>,
                       RunTimeOrder> heap_;
 
   // In addition to providing a mapping from a function name to a function,
   // it is also responsible for memory management.
-  std::unordered_map<std::string, std::unique_ptr<FunctionInfo>> map_;
+  std::unordered_map<std::string, std::shared_ptr<FunctionInfo>> map_;
 };
 
 }  // namespace ROCKSDB_NAMESPACE
