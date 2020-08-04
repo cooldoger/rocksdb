@@ -55,6 +55,7 @@ class Timer {
         repeat_every_us);
 
     InstrumentedMutexLock l(&mutex_);
+    CancelWithLock(fn_name);
     heap_.push(fn_info);
     map_.emplace(std::make_pair(fn_name, std::move(fn_info)));
     cond_var_.Signal();
@@ -63,13 +64,7 @@ class Timer {
 
   void Cancel(const std::string& fn_name) {
     InstrumentedMutexLock l(&mutex_);
-
-    auto it = map_.find(fn_name);
-    if (it != map_.end()) {
-      if (it->second) {
-        it->second->Cancel();
-      }
-    }
+    CancelWithLock(fn_name);
   }
 
   void CancelAll() {
@@ -125,7 +120,9 @@ class Timer {
 
       if (!current_fn->IsValid()) {
         heap_.pop();
-        map_.erase(current_fn->name);
+        if (map_[current_fn->name] == current_fn) {
+          map_.erase(current_fn->name);
+        }
         fprintf(stdout, "-- run: erasing %s, (heap size: %lu, map: %lu)\n", current_fn->name.c_str(), heap_.size(), map_.size());
         continue;
       }
@@ -154,6 +151,15 @@ class Timer {
       }
     }
     fprintf(stdout, "run: unlocking\n");
+  }
+
+  void CancelWithLock(const std::string& fn_name) {
+    auto it = map_.find(fn_name);
+    if (it != map_.end()) {
+      if (it->second) {
+        it->second->Cancel();
+      }
+    }
   }
 
   void CancelAllWithLock() {
