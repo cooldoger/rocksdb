@@ -127,7 +127,7 @@ class Timer {
         continue;
       }
 
-      fprintf(stdout, "-- run: %s, %llu\n", current_fn->name.c_str(), current_fn->next_run_time_us);
+      fprintf(stdout, "-- run: %s, %llu\n", current_fn->name.c_str(), (unsigned long long)(current_fn->next_run_time_us));
       if (current_fn->next_run_time_us <= env_->NowMicros()) {
         // Execute the work
         current_fn->fn();
