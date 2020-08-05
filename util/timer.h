@@ -108,14 +108,14 @@ class Timer {
     InstrumentedMutexLock l(&mutex_);
     fprintf(stdout, "-- run: wait start\n");
     while (heap_.top()->next_run_time_us <= env_->NowMicros()) {
-      cond_var_.Wait();
+      cond_var_.TimedWait(env_->NowMicros() + 1000);
     }
     if (callback != nullptr) {
       callback();
     }
     cond_var_.SignalAll();
     do {
-      cond_var_.Wait();
+      cond_var_.TimedWait(env_->NowMicros() + 1000);
     } while (heap_.top()->next_run_time_us <= env_->NowMicros());
     fprintf(stdout, "-- run: wait return\n");
   }
