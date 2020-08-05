@@ -39,6 +39,9 @@ class Timer {
       : env_(env),
         mutex_(env),
         cond_var_(&mutex_),
+#ifndef NDEBUG
+        waiting_(false),
+#endif
         running_(false) {
   }
 
@@ -58,7 +61,7 @@ class Timer {
     CancelWithLock(fn_name);
     heap_.push(fn_info);
     map_.emplace(std::make_pair(fn_name, std::move(fn_info)));
-    cond_var_.Signal();
+    cond_var_.SignalAll();
     fprintf(stdout, "Add: unlocking\n");
   }
 
@@ -94,7 +97,7 @@ class Timer {
       CancelAllWithLock();
       running_ = false;
       fprintf(stdout, "shutdown\n");
-      cond_var_.Signal();
+      cond_var_.SignalAll();
     }
 
     if (thread_) {
@@ -102,6 +105,24 @@ class Timer {
     }
     return true;
   }
+
+#ifndef NDEBUG
+  void TEST_WaitForRun(std::function<void()> callback = nullptr) {
+    InstrumentedMutexLock l(&mutex_);
+    fprintf(stdout, "-- run: wait start\n");
+    while (!waiting_) {
+      cond_var_.Wait();
+    }
+    if (callback != nullptr) {
+      callback();
+    }
+    cond_var_.SignalAll();
+    do {
+      cond_var_.Wait();
+    } while (!waiting_);
+    fprintf(stdout, "-- run: wait return\n");
+  }
+#endif
 
  private:
 
@@ -127,7 +148,7 @@ class Timer {
         continue;
       }
 
-      fprintf(stdout, "-- run: %s, %llu\n", current_fn->name.c_str(), (unsigned long long)(current_fn->next_run_time_us));
+      // fprintf(stdout, "-- run: %s, %llu\n", current_fn->name.c_str(), (unsigned long long)(current_fn->next_run_time_us));
       if (current_fn->next_run_time_us <= env_->NowMicros()) {
         // Execute the work
         current_fn->fn();
@@ -146,8 +167,15 @@ class Timer {
           heap_.push(current_fn);
         }
       } else {
+#ifndef NDEBUG
         fprintf(stdout, "-- run: wait\n");
+        waiting_ = true;
+        cond_var_.SignalAll();
+#endif
         cond_var_.TimedWait(current_fn->next_run_time_us);
+#ifndef NDEBUG
+        waiting_ = false;
+#endif
       }
     }
     fprintf(stdout, "run: unlocking\n");
@@ -222,6 +250,9 @@ class Timer {
   InstrumentedMutex mutex_;
   InstrumentedCondVar cond_var_;
   std::unique_ptr<port::Thread> thread_;
+#ifndef NDEBUG
+  bool waiting_;
+#endif
   bool running_;
 
 
@@ -232,6 +263,7 @@ class Timer {
   // In addition to providing a mapping from a function name to a function,
   // it is also responsible for memory management.
   std::unordered_map<std::string, std::shared_ptr<FunctionInfo>> map_;
+
 };
 
 }  // namespace ROCKSDB_NAMESPACE

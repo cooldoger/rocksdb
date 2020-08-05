@@ -60,6 +60,14 @@ std::string StatsDumpScheduler::GetTaskName(DB* db, std::string fun_name) {
   return res.str();
 }
 
+#ifndef NDEBUG
+void StatsDumpScheduler::TEST_WaitForRun(std::function<void()> callback) const {
+  if (timer != nullptr) {
+    timer->TEST_WaitForRun(callback);
+  }
+}
+#endif
+
 }  // namespace ROCKSDB_NAMESPACE
 
 #endif  // ROCKSDB_LITE

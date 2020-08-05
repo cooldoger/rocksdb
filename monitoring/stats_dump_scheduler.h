@@ -26,6 +26,10 @@ class StatsDumpScheduler {
   // TODO: make it private
   StatsDumpScheduler(Env* env);
 
+#ifndef NDEBUG
+  void TEST_WaitForRun(std::function<void()> callback) const;
+#endif
+
  private:
   Timer* timer;
 

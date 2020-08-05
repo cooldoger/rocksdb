@@ -989,6 +989,7 @@ class DBImpl : public DB {
   int TEST_BGCompactionsAllowed() const;
   int TEST_BGFlushesAllowed() const;
   size_t TEST_GetWalPreallocateBlockSize(uint64_t write_buffer_size) const;
+  void TEST_WaitForStatsDumpRun(std::function<void()> callback) const;
   size_t TEST_EstimateInMemoryStatsHistorySize() const;
 
   VersionSet* TEST_GetVersionSet() const { return versions_.get(); }
@@ -2091,7 +2092,7 @@ class DBImpl : public DB {
   std::unique_ptr<PreReleaseCallback> recoverable_state_pre_release_callback_;
 
   // REQUIRES: mutex locked
-  std::shared_ptr<ROCKSDB_NAMESPACE::StatsDumpScheduler> stats_dump_scheduler_;
+  std::shared_ptr<StatsDumpScheduler> stats_dump_scheduler_;
 
   // When set, we use a separate queue for writes that don't write to memtable.
   // In 2PC these are the writes at Prepare phase.

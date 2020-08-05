@@ -12,6 +12,7 @@
 #include "db/column_family.h"
 #include "db/db_impl/db_impl.h"
 #include "db/error_handler.h"
+#include "monitoring/stats_dump_scheduler.h"
 #include "monitoring/thread_status_updater.h"
 #include "util/cast_util.h"
 
@@ -269,6 +270,12 @@ size_t DBImpl::TEST_GetWalPreallocateBlockSize(
     uint64_t write_buffer_size) const {
   InstrumentedMutexLock l(&mutex_);
   return GetWalPreallocateBlockSize(write_buffer_size);
+}
+
+void DBImpl::TEST_WaitForStatsDumpRun(std::function<void()> callback) const {
+  if (stats_dump_scheduler_ != nullptr) {
+    stats_dump_scheduler_->TEST_WaitForRun(callback);
+  }
 }
 
 size_t DBImpl::TEST_EstimateInMemoryStatsHistorySize() const {

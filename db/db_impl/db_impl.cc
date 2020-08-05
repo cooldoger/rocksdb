@@ -717,6 +717,8 @@ void DBImpl::PersistStats() {
     return;
   }
   uint64_t now_seconds = env_->NowMicros() / kMicrosInSecond;
+
+  fprintf(stdout, "PST: seconds %llu\n", now_seconds);
   Statistics* statistics = immutable_db_options_.statistics.get();
   if (!statistics) {
     return;
@@ -807,6 +809,8 @@ void DBImpl::PersistStats() {
                    " bytes, slice count: %" ROCKSDB_PRIszt,
                    stats_history_size, stats_history_.size());
   }
+  TEST_SYNC_POINT("DBImpl::PersistStats:End");
+  fprintf(stdout, "PST: done seconds %llu\n", now_seconds);
 #endif  // !ROCKSDB_LITE
 }
 
