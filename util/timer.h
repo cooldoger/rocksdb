@@ -106,7 +106,7 @@ class Timer {
 #ifndef NDEBUG
   void TEST_WaitForRun(std::function<void()> callback = nullptr) {
     InstrumentedMutexLock l(&mutex_);
-    fprintf(stdout, "-- run: wait start, top: %llu, now: %llu\n", heap_.top()->next_run_time_us, env_->NowMicros());
+    fprintf(stdout, "-- run: wait start, top: %llu, now: %llu\n", (unsigned long long)heap_.top()->next_run_time_us, (unsigned long long)env_->NowMicros());
     while (heap_.top()->next_run_time_us <= env_->NowMicros()) {
       cond_var_.TimedWait(env_->NowMicros() + 1000);
     }
