@@ -14,7 +14,7 @@ namespace ROCKSDB_NAMESPACE {
 
 class StatsDumpScheduler {
  public:
-  static std::shared_ptr<StatsDumpScheduler> Default(Env* env);
+  static std::shared_ptr<StatsDumpScheduler> Default();
 
   ~StatsDumpScheduler();
 
@@ -31,6 +31,8 @@ class StatsDumpScheduler {
 
   size_t TEST_GetValidTaskNum() const;
 
+  static std::shared_ptr<StatsDumpScheduler> TEST_Default(Env *env);
+
 #endif
 
  private:
@@ -39,6 +41,8 @@ class StatsDumpScheduler {
   static port::Mutex mutex_;
 
   std::string GetTaskName(DB* db, std::string fun_name);
+
+  static std::shared_ptr<StatsDumpScheduler> CreateDefault(Env *env);
 };
 
 }  // namespace ROCKSDB_NAMESPACE

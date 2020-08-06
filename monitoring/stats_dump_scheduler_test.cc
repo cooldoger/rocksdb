@@ -195,7 +195,7 @@ TEST_F(StatsDumpSchedulerTest, MultiEnvTest) {
   DB::Open(options2, dbname, &db);
   DBImpl* dbi = static_cast_with_check<DBImpl>(db);
 
-  ASSERT_NE(dbi->TEST_GetStatsDumpScheduler(),
+  ASSERT_EQ(dbi->TEST_GetStatsDumpScheduler(),
             dbfull()->TEST_GetStatsDumpScheduler());
 
   db->Close();

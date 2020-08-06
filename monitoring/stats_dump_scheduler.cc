@@ -47,24 +47,25 @@ void StatsDumpScheduler::Unregister(DB* db) {
   timer->Cancel(GetTaskName(dbi, "pst_st"));
 }
 
-std::shared_ptr<StatsDumpScheduler> StatsDumpScheduler::Default(Env* env) {
+std::shared_ptr<StatsDumpScheduler> StatsDumpScheduler::CreateDefault(Env* env) {
   if (env == nullptr) {
     return nullptr;
   }
   MutexLock l(&mutex_);
-  static std::unordered_map<Env*, std::weak_ptr<StatsDumpScheduler>>
-      scheduler_map;
-  auto it = scheduler_map.find(env);
-
-  if (it != scheduler_map.end()) {
-    auto scheduler = it->second.lock();
-    if (scheduler) {
-      return scheduler;
-    }
+  static std::weak_ptr<StatsDumpScheduler> scheduler;
+  auto ret = scheduler.lock();
+  if (!ret) {
+    ret = std::make_shared<StatsDumpScheduler>(env);
+    scheduler = ret;
   }
-  auto scheduler = std::make_shared<StatsDumpScheduler>(env);
-  scheduler_map[env] = scheduler;
-  return scheduler;
+  return ret;
+}
+
+std::shared_ptr<StatsDumpScheduler> StatsDumpScheduler::Default() {
+  // Always use the default Env for the scheduler, as we only use the NowMicros
+  // which is the same for all env.
+  // The Env could only be overrided in test.
+  return CreateDefault(Env::Default());
 }
 
 std::string StatsDumpScheduler::GetTaskName(DB* db, std::string fun_name) {
@@ -74,6 +75,10 @@ std::string StatsDumpScheduler::GetTaskName(DB* db, std::string fun_name) {
 }
 
 #ifndef NDEBUG
+std::shared_ptr<StatsDumpScheduler> StatsDumpScheduler::TEST_Default(Env* env) {
+  return CreateDefault(env);
+}
+
 void StatsDumpScheduler::TEST_WaitForRun(std::function<void()> callback) const {
   if (timer != nullptr) {
     timer->TEST_WaitForRun(callback);
@@ -86,7 +91,6 @@ size_t StatsDumpScheduler::TEST_GetValidTaskNum() const {
   }
   return 0;
 }
-
 #endif
 
 }  // namespace ROCKSDB_NAMESPACE
