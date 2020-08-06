@@ -48,6 +48,7 @@ TEST_F(StatsDumpSchedulerTest, BasicTest) {
   mock_env_->set_current_time(0);
   options.env = mock_env_.get();
 
+  Close();
   int dump_st_counter = 0;
   ROCKSDB_NAMESPACE::SyncPoint::GetInstance()->SetCallBack(
       "DBImpl::DumpStats:Entry2", [&](void*) { dump_st_counter++; });
@@ -57,7 +58,6 @@ TEST_F(StatsDumpSchedulerTest, BasicTest) {
       "DBImpl::PersistStats:Entry2", [&](void*) { pst_st_counter++; });
   ROCKSDB_NAMESPACE::SyncPoint::GetInstance()->EnableProcessing();
 
-  Close();
   Reopen(options);
 
   ASSERT_EQ(5u, dbfull()->GetDBOptions().stats_dump_period_sec);
