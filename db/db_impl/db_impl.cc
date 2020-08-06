@@ -691,7 +691,9 @@ void DBImpl::StartTimedTasks() {
   }
 
   if (stats_dump_scheduler_ != nullptr) {
-    stats_dump_scheduler_->Register(this, mutable_db_options_.stats_dump_period_sec, mutable_db_options_.stats_persist_period_sec);
+    stats_dump_scheduler_->Register(
+        this, mutable_db_options_.stats_dump_period_sec,
+        mutable_db_options_.stats_persist_period_sec);
   }
 #endif  // !ROCKSDB_LITE
 }
@@ -1075,9 +1077,9 @@ Status DBImpl::SetDBOptions(
       }
 
       if (new_options.stats_dump_period_sec !=
-          mutable_db_options_.stats_dump_period_sec ||
+              mutable_db_options_.stats_dump_period_sec ||
           new_options.stats_persist_period_sec !=
-          mutable_db_options_.stats_persist_period_sec) {
+              mutable_db_options_.stats_persist_period_sec) {
         if (stats_dump_scheduler_) {
           mutex_.Unlock();
           stats_dump_scheduler_->Unregister(this);
@@ -1089,7 +1091,9 @@ Status DBImpl::SetDBOptions(
             stats_dump_scheduler_ = StatsDumpScheduler::Default(env_);
           }
           mutex_.Unlock();
-          stats_dump_scheduler_->Register(this, new_options.stats_dump_period_sec, new_options.stats_persist_period_sec);
+          stats_dump_scheduler_->Register(this,
+                                          new_options.stats_dump_period_sec,
+                                          new_options.stats_persist_period_sec);
           mutex_.Lock();
         } else {
           stats_dump_scheduler_ = nullptr;

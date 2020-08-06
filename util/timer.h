@@ -49,9 +49,7 @@ class Timer {
            uint64_t start_after_us,
            uint64_t repeat_every_us) {
     auto fn_info = std::make_shared<FunctionInfo>(
-        std::move(fn),
-        fn_name,
-        env_->NowMicros() + start_after_us,
+        std::move(fn), fn_name, env_->NowMicros() + start_after_us,
         repeat_every_us);
 
     InstrumentedMutexLock l(&mutex_);
@@ -245,13 +243,12 @@ class Timer {
   bool running_;
 
   std::priority_queue<std::shared_ptr<FunctionInfo>,
-                      std::vector<std::shared_ptr<FunctionInfo>>,
-                      RunTimeOrder> heap_;
+                      std::vector<std::shared_ptr<FunctionInfo>>, RunTimeOrder>
+      heap_;
 
   // In addition to providing a mapping from a function name to a function,
   // it is also responsible for memory management.
   std::unordered_map<std::string, std::shared_ptr<FunctionInfo>> map_;
-
 };
 
 }  // namespace ROCKSDB_NAMESPACE

@@ -31,33 +31,6 @@ class DBBasicTest : public DBTestBase {
   DBBasicTest() : DBTestBase("/db_basic_test") {}
 };
 
-TEST_F(DBBasicTest, ThreadTest) {
-  Options options;
-  options.stats_dump_period_sec = 1;
-  options.create_if_missing = true;
-  DB* db;
-
-  std::cout << "test start" << std::endl;
-
-  // Open DB
-  Status s = DB::Open(options, "/tmp/db_test", &db);
-  ASSERT_TRUE(s.ok());
-
-  // Add data
-  db->Put(WriteOptions(), "k1", "val1");
-
-  // Read data
-  std::string res;
-  db->Get(ReadOptions(), "k1", &res);
-  std::cout << res << std::endl;
-
-  delete db;
-
-  std::cout << "end" << std::endl;
-//  std::this_thread::sleep_for(std::chrono::seconds(5));
-//  std::cout << "sleep done" << std::endl;
-}
-
 TEST_F(DBBasicTest, OpenWhenOpen) {
   Options options = CurrentOptions();
   options.env = env_;

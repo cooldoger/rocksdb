@@ -28,8 +28,9 @@ namespace ROCKSDB_NAMESPACE {
 
 class StatsHistoryTest : public DBTestBase {
  public:
-  StatsHistoryTest() : DBTestBase("/stats_history_test"),
-                       mock_env_(new MockTimeEnv(Env::Default())) {}
+  StatsHistoryTest()
+      : DBTestBase("/stats_history_test"),
+        mock_env_(new MockTimeEnv(Env::Default())) {}
 
  protected:
   std::unique_ptr<MockTimeEnv> mock_env_;
@@ -249,7 +250,7 @@ TEST_F(StatsHistoryTest, InMemoryStatsHistoryPurging) {
   // Wait for stats persist to finish
   for (; mock_time < 5; ++mock_time) {
     dbfull()->TEST_WaitForStatsDumpRun(
-        [&] { mock_env->set_current_time(mock_time);});
+        [&] { mock_env->set_current_time(mock_time); });
   }
 
   // second round of ops
@@ -270,7 +271,7 @@ TEST_F(StatsHistoryTest, InMemoryStatsHistoryPurging) {
   }
 
   std::unique_ptr<StatsHistoryIterator> stats_iter;
-  db_->GetStatsHistory(0 , 10, &stats_iter);
+  db_->GetStatsHistory(0, 10, &stats_iter);
   ASSERT_TRUE(stats_iter != nullptr);
   size_t stats_count = 0;
   int slice_count = 0;

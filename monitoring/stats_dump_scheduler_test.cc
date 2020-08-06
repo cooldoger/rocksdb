@@ -11,8 +11,9 @@ namespace ROCKSDB_NAMESPACE {
 
 class StatsDumpSchedulerTest : public DBTestBase {
  public:
-  StatsDumpSchedulerTest() : DBTestBase("/stats_dump_scheduler_test"),
-                             mock_env_(new MockTimeEnv(Env::Default())) {}
+  StatsDumpSchedulerTest()
+      : DBTestBase("/stats_dump_scheduler_test"),
+        mock_env_(new MockTimeEnv(Env::Default())) {}
 
  protected:
   std::unique_ptr<MockTimeEnv> mock_env_;
@@ -82,7 +83,8 @@ TEST_F(StatsDumpSchedulerTest, BasicTest) {
   ASSERT_EQ(pst_st_counter, 2);
 
   // Disable scheduler with SetOption
-  ASSERT_OK(dbfull()->SetDBOptions({{"stats_dump_period_sec", "0"}, {"stats_persist_period_sec", "0"}}));
+  ASSERT_OK(dbfull()->SetDBOptions(
+      {{"stats_dump_period_sec", "0"}, {"stats_persist_period_sec", "0"}}));
   ASSERT_EQ(0, dbfull()->GetDBOptions().stats_dump_period_sec);
   ASSERT_EQ(0, dbfull()->GetDBOptions().stats_persist_period_sec);
 
@@ -128,7 +130,8 @@ TEST_F(StatsDumpSchedulerTest, MultiInstancesTest) {
 
   auto dbs = std::vector<DB*>(kInstanceNum);
   for (int i = 0; i < kInstanceNum; i++) {
-    ASSERT_OK(DB::Open(options, test::PerThreadDBPath(std::to_string(i)), &(dbs[i])));
+    ASSERT_OK(
+        DB::Open(options, test::PerThreadDBPath(std::to_string(i)), &(dbs[i])));
   }
 
   auto dbi = static_cast_with_check<DBImpl>(dbs[kInstanceNum - 1]);
@@ -192,13 +195,14 @@ TEST_F(StatsDumpSchedulerTest, MultiEnvTest) {
   DB::Open(options2, dbname, &db);
   DBImpl* dbi = static_cast_with_check<DBImpl>(db);
 
-  ASSERT_NE(dbi->TEST_GetStatsDumpScheduler(), dbfull()->TEST_GetStatsDumpScheduler());
+  ASSERT_NE(dbi->TEST_GetStatsDumpScheduler(),
+            dbfull()->TEST_GetStatsDumpScheduler());
 
   db->Close();
   Close();
 }
 #endif  // !ROCKSDB_LITE
-} // namespace ROCKSDB_NAMESPACE
+}  // namespace ROCKSDB_NAMESPACE
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

@@ -288,20 +288,17 @@ TEST_F(TimerTest, DuplicatedFunTest) {
   ASSERT_TRUE(timer.Start());
 
   int fun_counter1 = 0;
-  timer.Add(
-      [&] { fun_counter1++; },
-      "duplicated_fun", 1 * kSecond, 5 * kSecond);
+  timer.Add([&] { fun_counter1++; }, "duplicated_fun", 1 * kSecond,
+            5 * kSecond);
 
   int fun2_counter = 0;
-  timer.Add(
-      [&] { fun2_counter++; },
-      "duplicated_fun", 1 * kSecond, 4 * kSecond);
+  timer.Add([&] { fun2_counter++; }, "duplicated_fun", 1 * kSecond,
+            4 * kSecond);
 
   // New function with the same name should override the existing one
   int fun_counter2 = 0;
-  timer.Add(
-      [&] { fun_counter2++; },
-      "duplicated_fun", 1 * kSecond, 5 * kSecond);
+  timer.Add([&] { fun_counter2++; }, "duplicated_fun", 1 * kSecond,
+            5 * kSecond);
 
   timer.TEST_WaitForRun([&] { mock_env_->set_current_time(1); });
 

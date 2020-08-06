@@ -999,7 +999,9 @@ class DBImpl : public DB {
   }
 
 #ifndef ROCKSDB_LITE
-  StatsDumpScheduler* TEST_GetStatsDumpScheduler() const { return stats_dump_scheduler_.get(); }
+  StatsDumpScheduler* TEST_GetStatsDumpScheduler() const {
+    return stats_dump_scheduler_.get();
+  }
 #endif  // !ROCKSDB_LITE
 
 #endif  // NDEBUG
