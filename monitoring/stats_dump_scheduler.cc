@@ -15,13 +15,11 @@ namespace ROCKSDB_NAMESPACE {
 port::Mutex StatsDumpScheduler::mutex_;
 
 StatsDumpScheduler::StatsDumpScheduler(Env* env) {
-  fprintf(stdout, "SS: creating\n");
   timer = new Timer(env);
   timer->Start();
 }
 
 StatsDumpScheduler::~StatsDumpScheduler() {
-  fprintf(stdout, "SS: deleting\n");
   if (timer) {
     timer->Shutdown();
     delete timer;
@@ -30,21 +28,17 @@ StatsDumpScheduler::~StatsDumpScheduler() {
 
 void StatsDumpScheduler::Register(DB* db, unsigned int stats_dump_period_sec,
                                   unsigned int stats_persist_period_sec) {
-  fprintf(stdout, "SS: register\n");
   DBImpl* dbi = static_cast_with_check<DBImpl>(db);
 
   if (stats_dump_period_sec > 0) {
-    fprintf(stdout, "SS: register dump_st\n");
     timer->Add([dbi]() { dbi->DumpStats(); }, GetTaskName(dbi, "dump_st"), 0, stats_dump_period_sec * 1e6);
   }
   if (stats_persist_period_sec > 0) {
-    fprintf(stdout, "SS: register pst_st\n");
     timer->Add([dbi]() { dbi->PersistStats(); }, GetTaskName(dbi, "pst_st"), 0, stats_persist_period_sec * 1e6);
   }
 }
 
 void StatsDumpScheduler::Unregister(DB* db) {
-  fprintf(stdout, "SS: Unregister\n");
   DBImpl* dbi = static_cast_with_check<DBImpl>(db);
   timer->Cancel(GetTaskName(dbi, "dump_st"));
   timer->Cancel(GetTaskName(dbi, "pst_st"));

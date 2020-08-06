@@ -59,7 +59,6 @@ class Timer {
     heap_.push(fn_info);
     map_.emplace(std::make_pair(fn_name, std::move(fn_info)));
     cond_var_.SignalAll();
-    fprintf(stdout, "Add: unlocking\n");
   }
 
   void Cancel(const std::string& fn_name) {
@@ -93,7 +92,6 @@ class Timer {
       }
       CancelAllWithLock();
       running_ = false;
-      fprintf(stdout, "shutdown\n");
       cond_var_.SignalAll();
     }
 
@@ -106,7 +104,6 @@ class Timer {
 #ifndef NDEBUG
   void TEST_WaitForRun(std::function<void()> callback = nullptr) {
     InstrumentedMutexLock l(&mutex_);
-    fprintf(stdout, "-- run: wait start, top: %llu, now: %llu\n", (unsigned long long)heap_.top()->next_run_time_us, (unsigned long long)env_->NowMicros());
     while (heap_.top()->next_run_time_us <= env_->NowMicros()) {
       cond_var_.TimedWait(env_->NowMicros() + 1000);
     }
@@ -117,7 +114,6 @@ class Timer {
     do {
       cond_var_.TimedWait(env_->NowMicros() + 1000);
     } while (heap_.top()->next_run_time_us <= env_->NowMicros());
-    fprintf(stdout, "-- run: wait return\n");
   }
 
   size_t TEST_GetValidTaskNum() const {
@@ -151,11 +147,9 @@ class Timer {
         if (map_[current_fn->name] == current_fn) {
           map_.erase(current_fn->name);
         }
-        fprintf(stdout, "-- run: erasing %s, (heap size: %lu, map: %lu)\n", current_fn->name.c_str(), heap_.size(), map_.size());
         continue;
       }
 
-      // fprintf(stdout, "-- run: %s, %llu\n", current_fn->name.c_str(), (unsigned long long)(current_fn->next_run_time_us));
       if (current_fn->next_run_time_us <= env_->NowMicros()) {
         // Execute the work
         current_fn->fn();
@@ -177,7 +171,6 @@ class Timer {
         cond_var_.TimedWait(current_fn->next_run_time_us);
       }
     }
-    fprintf(stdout, "run: unlocking\n");
   }
 
   void CancelWithLock(const std::string& fn_name) {
@@ -225,9 +218,7 @@ class Timer {
         name(_name),
         next_run_time_us(_next_run_time_us),
         repeat_every_us(_repeat_every_us),
-        valid(true) {
-      fprintf(stdout, "=== + creating\n");
-    }
+        valid(true) {}
 
     void Cancel() {
       valid = false;
@@ -235,9 +226,6 @@ class Timer {
 
     bool IsValid() {
       return valid;
-    }
-    ~FunctionInfo() {
-      fprintf(stdout, "=== - destroying\n");
     }
   };
 

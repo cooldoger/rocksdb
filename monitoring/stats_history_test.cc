@@ -176,7 +176,6 @@ TEST_F(StatsHistoryTest, GetStatsHistoryInMemory) {
   int mock_time = 1;
   // Wait for stats persist to finish
   dbfull()->TEST_WaitForStatsDumpRun([&] { mock_env->set_current_time(5); });
-  std::cout << "test: finish pst run" << std::endl;
 
   std::unique_ptr<StatsHistoryIterator> stats_iter;
   db_->GetStatsHistory(0, 6, &stats_iter);
@@ -185,7 +184,6 @@ TEST_F(StatsHistoryTest, GetStatsHistoryInMemory) {
   ASSERT_OK(dbfull()->SetDBOptions({{"stats_persist_period_sec", "0"}}));
   size_t stats_count = 0;
   for (; stats_iter->Valid(); stats_iter->Next()) {
-    std::cout << "test: has iter" << std::endl;
     auto stats_map = stats_iter->GetStatsMap();
     ASSERT_EQ(stats_iter->GetStatsTime(), 5);
     stats_count += stats_map.size();

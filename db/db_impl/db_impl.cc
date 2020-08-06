@@ -440,7 +440,6 @@ void DBImpl::CancelAllBackgroundWork(bool wait) {
                  "Shutdown: canceling all background work");
 
 #ifndef ROCKSDB_LITE
-  fprintf(stdout, "DB: Unregister, use_cout: %ld\n", stats_dump_scheduler_.use_count());
   if (stats_dump_scheduler_ != nullptr) {
     stats_dump_scheduler_->Unregister(this);
   }
@@ -688,7 +687,6 @@ void DBImpl::StartTimedTasks() {
       if (stats_dump_scheduler_ == nullptr) {
         stats_dump_scheduler_ = StatsDumpScheduler::Default(env_);
       }
-      fprintf(stdout, " DB: count %ld \n", stats_dump_scheduler_.use_count());
     }
   }
 
@@ -724,7 +722,6 @@ void DBImpl::PersistStats() {
   TEST_SYNC_POINT("DBImpl::PersistStats:Entry2");
   uint64_t now_seconds = env_->NowMicros() / kMicrosInSecond;
 
-  fprintf(stdout, "PST: seconds %llu\n",  (unsigned long long)now_seconds);
   Statistics* statistics = immutable_db_options_.statistics.get();
   if (!statistics) {
     return;
@@ -816,7 +813,6 @@ void DBImpl::PersistStats() {
                    stats_history_size, stats_history_.size());
   }
   TEST_SYNC_POINT("DBImpl::PersistStats:End");
-  fprintf(stdout, "PST: done seconds %llu\n",  (unsigned long long) now_seconds);
 #endif  // !ROCKSDB_LITE
 }
 
@@ -858,7 +854,6 @@ Status DBImpl::GetStatsHistory(
 }
 
 void DBImpl::DumpStats() {
-  fprintf(stdout, "JJJJJJ\n");
   TEST_SYNC_POINT("DBImpl::DumpStats:1");
 #ifndef ROCKSDB_LITE
   const DBPropertyInfo* cf_property_info =

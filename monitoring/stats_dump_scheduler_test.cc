@@ -56,11 +56,8 @@ TEST_F(StatsDumpSchedulerTest, BasicTest) {
       "DBImpl::PersistStats:Entry2", [&](void*) { pst_st_counter++; });
   ROCKSDB_NAMESPACE::SyncPoint::GetInstance()->EnableProcessing();
 
-  std::cout << "=================== +" << std::endl;
   Close();
-  std::cout << "=========== close " << std::endl;
   Reopen(options);
-  std::cout << "=================== -" << std::endl;
 
   ASSERT_EQ(5u, dbfull()->GetDBOptions().stats_dump_period_sec);
   ASSERT_EQ(10u, dbfull()->GetDBOptions().stats_persist_period_sec);
