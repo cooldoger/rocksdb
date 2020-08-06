@@ -997,6 +997,8 @@ class DBImpl : public DB {
   const std::unordered_set<uint64_t>& TEST_GetFilesGrabbedForPurge() const {
     return files_grabbed_for_purge_;
   }
+
+  StatsDumpScheduler* TEST_GetStatsDumpScheduler() const { return stats_dump_scheduler_.get(); }
 #endif  // NDEBUG
 
   // persist stats to column family "_persistent_stats"

@@ -28,6 +28,8 @@ class StatsDumpScheduler {
 
 #ifndef NDEBUG
   void TEST_WaitForRun(std::function<void()> callback) const;
+
+  size_t TEST_GetValidTaskNum() const;
 #endif
 
  private:

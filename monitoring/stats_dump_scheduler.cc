@@ -49,7 +49,8 @@ void StatsDumpScheduler::Unregister(DB* db) {
 }
 
 std::shared_ptr<StatsDumpScheduler> StatsDumpScheduler::Default(Env* env) {
-  auto scheduler = std::make_shared<StatsDumpScheduler>(env);
+  static auto scheduler = std::make_shared<StatsDumpScheduler>(env);
+  fprintf(stdout, "SS: created, use_cout: %ld\n", scheduler.use_count());
   return scheduler;
 }
 
@@ -65,6 +66,13 @@ void StatsDumpScheduler::TEST_WaitForRun(std::function<void()> callback) const {
   if (timer != nullptr) {
     timer->TEST_WaitForRun(callback);
   }
+}
+
+size_t StatsDumpScheduler::TEST_GetValidTaskNum() const {
+  if (timer != nullptr) {
+    return timer->TEST_GetValidTaskNum();
+  }
+  return 0;
 }
 #endif
 

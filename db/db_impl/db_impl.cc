@@ -439,10 +439,12 @@ void DBImpl::CancelAllBackgroundWork(bool wait) {
   ROCKS_LOG_INFO(immutable_db_options_.info_log,
                  "Shutdown: canceling all background work");
 
-  fprintf(stdout, "DB: Unregister\n");
+  fprintf(stdout, "DB: Unregister, use_cout: %ld\n", stats_dump_scheduler_.use_count());
   if (stats_dump_scheduler_ != nullptr) {
     stats_dump_scheduler_->Unregister(this);
   }
+
+  stats_dump_scheduler_ = nullptr;
 
   InstrumentedMutexLock l(&mutex_);
   if (!shutting_down_.load(std::memory_order_acquire) &&
@@ -684,7 +686,7 @@ void DBImpl::StartTimedTasks() {
       if (stats_dump_scheduler_ == nullptr) {
         stats_dump_scheduler_ = StatsDumpScheduler::Default(env_);
       }
-      fprintf(stdout, "DB: count %ld \n", stats_dump_scheduler_.use_count());
+      fprintf(stdout, " DB: count %ld \n", stats_dump_scheduler_.use_count());
     }
   }
 
@@ -716,6 +718,7 @@ void DBImpl::PersistStats() {
   if (shutdown_initiated_) {
     return;
   }
+  TEST_SYNC_POINT("DBImpl::PersistStats:Entry2");
   uint64_t now_seconds = env_->NowMicros() / kMicrosInSecond;
 
   fprintf(stdout, "PST: seconds %llu\n",  (unsigned long long)now_seconds);
@@ -866,6 +869,7 @@ void DBImpl::DumpStats() {
   if (shutdown_initiated_) {
     return;
   }
+  TEST_SYNC_POINT("DBImpl::DumpStats:Entry2");
   {
     InstrumentedMutexLock l(&mutex_);
     default_cf_internal_stats_->GetStringProperty(

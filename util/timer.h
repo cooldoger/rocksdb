@@ -106,7 +106,7 @@ class Timer {
 #ifndef NDEBUG
   void TEST_WaitForRun(std::function<void()> callback = nullptr) {
     InstrumentedMutexLock l(&mutex_);
-    fprintf(stdout, "-- run: wait start\n");
+    fprintf(stdout, "-- run: wait start, top: %llu, now: %llu\n", heap_.top()->next_run_time_us, env_->NowMicros());
     while (heap_.top()->next_run_time_us <= env_->NowMicros()) {
       cond_var_.TimedWait(env_->NowMicros() + 1000);
     }
@@ -118,6 +118,16 @@ class Timer {
       cond_var_.TimedWait(env_->NowMicros() + 1000);
     } while (heap_.top()->next_run_time_us <= env_->NowMicros());
     fprintf(stdout, "-- run: wait return\n");
+  }
+
+  size_t TEST_GetValidTaskNum() const {
+    size_t ret = 0;
+    for (auto f : map_) {
+      if (f.second->IsValid()) {
+        ret++;
+      }
+    }
+    return ret;
   }
 #endif
 
@@ -215,7 +225,9 @@ class Timer {
         name(_name),
         next_run_time_us(_next_run_time_us),
         repeat_every_us(_repeat_every_us),
-        valid(true) {}
+        valid(true) {
+      fprintf(stdout, "=== + creating\n");
+    }
 
     void Cancel() {
       valid = false;
@@ -223,6 +235,9 @@ class Timer {
 
     bool IsValid() {
       return valid;
+    }
+    ~FunctionInfo() {
+      fprintf(stdout, "=== - destroying\n");
     }
   };
 
