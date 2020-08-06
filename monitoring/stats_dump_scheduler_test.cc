@@ -130,25 +130,74 @@ TEST_F(StatsDumpSchedulerTest, MultiInstancesTest) {
 
   auto dbs = std::vector<DB*>(kInstanceNum);
   for (int i = 0; i < kInstanceNum; i++) {
-    ASSERT_OK(DB::Open(options, std::to_string(i), &(dbs[i])));
+    ASSERT_OK(DB::Open(options, test::PerThreadDBPath(std::to_string(i)), &(dbs[i])));
   }
 
-  auto dbi = static_cast_with_check<DBImpl>(dbs[0]);
+  auto dbi = static_cast_with_check<DBImpl>(dbs[kInstanceNum - 1]);
   auto scheduler = dbi->TEST_GetStatsDumpScheduler();
-  auto s2 = static_cast_with_check<DBImpl>(dbs[1])->TEST_GetStatsDumpScheduler();
-  std::cout << scheduler << std::endl;
-  std::cout << s2 << std::endl;
   ASSERT_EQ(scheduler->TEST_GetValidTaskNum(), kInstanceNum * 2);
 
-  dbfull()->TEST_WaitForStatsDumpRun([&] { mock_env_->set_current_time(1); });
+  int dump_st_expected_run = kInstanceNum;
+  int pst_st_expected_run = kInstanceNum;
+  dbi->TEST_WaitForStatsDumpRun([&] { mock_env_->set_current_time(1); });
+  ASSERT_EQ(dump_st_counter, dump_st_expected_run);
+  ASSERT_EQ(pst_st_counter, pst_st_expected_run);
 
-//  ASSERT_EQ(dump_st_counter, kInstanceNum);
-//  ASSERT_EQ(pst_st_counter, kInstanceNum);
+  dump_st_expected_run += kInstanceNum;
+  dbi->TEST_WaitForStatsDumpRun([&] { mock_env_->set_current_time(6); });
+  ASSERT_EQ(dump_st_counter, dump_st_expected_run);
+  ASSERT_EQ(pst_st_counter, pst_st_expected_run);
 
-  for (int i = 0; i < kInstanceNum; i++) {
+  dump_st_expected_run += kInstanceNum;
+  pst_st_expected_run += kInstanceNum;
+  dbi->TEST_WaitForStatsDumpRun([&] { mock_env_->set_current_time(11); });
+  ASSERT_EQ(dump_st_counter, dump_st_expected_run);
+  ASSERT_EQ(pst_st_counter, pst_st_expected_run);
+
+  int half = kInstanceNum / 2;
+  for (int i = 0; i < half; i++) {
     dbs[i]->Close();
   }
 
+  dump_st_expected_run += (kInstanceNum - half) * 2;
+  pst_st_expected_run += kInstanceNum - half;
+
+  dbi->TEST_WaitForStatsDumpRun([&] { mock_env_->set_current_time(16); });
+  dbi->TEST_WaitForStatsDumpRun([&] { mock_env_->set_current_time(21); });
+  ASSERT_EQ(dump_st_counter, dump_st_expected_run);
+  ASSERT_EQ(pst_st_counter, pst_st_expected_run);
+
+  for (int i = half; i < kInstanceNum; i++) {
+    dbs[i]->Close();
+  }
+}
+
+TEST_F(StatsDumpSchedulerTest, MultiEnvTest) {
+  Options options1;
+  options1.stats_dump_period_sec = 5;
+  options1.stats_persist_period_sec = 10;
+  options1.create_if_missing = true;
+  mock_env_->set_current_time(0);
+  options1.env = mock_env_.get();
+  Reopen(options1);
+
+  MockTimeEnv* mock_env2 = new MockTimeEnv(Env::Default());
+  Options options2;
+  options2.stats_dump_period_sec = 5;
+  options2.stats_persist_period_sec = 10;
+  options2.create_if_missing = true;
+  mock_env2->set_current_time(0);
+  options1.env = mock_env2;
+
+  std::string dbname = test::PerThreadDBPath("multi_env_test");
+  DB* db;
+  DB::Open(options2, dbname, &db);
+  DBImpl* dbi = static_cast_with_check<DBImpl>(db);
+
+  ASSERT_NE(dbi->TEST_GetStatsDumpScheduler(), dbfull()->TEST_GetStatsDumpScheduler());
+
+  db->Close();
+  Close();
 }
 
 } // namespace ROCKSDB_NAMESPACE

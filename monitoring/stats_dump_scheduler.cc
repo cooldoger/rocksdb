@@ -12,6 +12,8 @@
 #ifndef ROCKSDB_LITE
 namespace ROCKSDB_NAMESPACE {
 
+port::Mutex StatsDumpScheduler::mutex_;
+
 StatsDumpScheduler::StatsDumpScheduler(Env* env) {
   fprintf(stdout, "SS: creating\n");
   timer = new Timer(env);
@@ -49,8 +51,21 @@ void StatsDumpScheduler::Unregister(DB* db) {
 }
 
 std::shared_ptr<StatsDumpScheduler> StatsDumpScheduler::Default(Env* env) {
-  static auto scheduler = std::make_shared<StatsDumpScheduler>(env);
-  fprintf(stdout, "SS: created, use_cout: %ld\n", scheduler.use_count());
+  if (env == nullptr) {
+    return nullptr;
+  }
+  MutexLock l(&mutex_);
+  static std::unordered_map<Env*, std::weak_ptr<StatsDumpScheduler>> scheduler_map;
+  auto it = scheduler_map.find(env);
+
+  if (it != scheduler_map.end()) {
+    auto scheduler = it->second.lock();
+    if (scheduler) {
+      return scheduler;
+    }
+  }
+  auto scheduler = std::make_shared<StatsDumpScheduler>(env);
+  scheduler_map[env] = scheduler;
   return scheduler;
 }
 
@@ -74,6 +89,7 @@ size_t StatsDumpScheduler::TEST_GetValidTaskNum() const {
   }
   return 0;
 }
+
 #endif
 
 }  // namespace ROCKSDB_NAMESPACE

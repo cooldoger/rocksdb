@@ -30,10 +30,13 @@ class StatsDumpScheduler {
   void TEST_WaitForRun(std::function<void()> callback) const;
 
   size_t TEST_GetValidTaskNum() const;
+
 #endif
 
  private:
   Timer* timer;
+
+  static port::Mutex mutex_;
 
   std::string GetTaskName(DB* db, std::string fun_name);
 };

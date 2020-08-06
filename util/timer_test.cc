@@ -318,6 +318,39 @@ TEST_F(TimerTest, DuplicatedFunTest) {
   ASSERT_TRUE(timer.Shutdown());
 }
 
+class A {
+ private:
+  int val;
+ public:
+  A(int v) {
+    val = v;
+    std::cout << "construct" << std::endl;
+  }
+  ~A() {
+    std::cout << "destroy" << std::endl;
+  }
+  static std::shared_ptr<A> Default() {
+    static std::weak_ptr<A> obj;
+    auto ret = obj.lock();
+    if (!ret) {
+      ret = std::make_shared<A>(1);
+      obj = ret;
+    }
+    return ret;
+  }
+};
+
+TEST_F(TimerTest, MainTest) {
+  {
+    auto s1 = A::Default();
+    auto s2 = A::Default();
+    std::cout << s2.use_count() << std::endl;
+  }
+  auto s3 = A::Default();
+  std::cout << s3.use_count() << std::endl;
+  std::cout << "end" << std::endl;
+}
+
 }  // namespace ROCKSDB_NAMESPACE
 
 int main(int argc, char** argv) {
