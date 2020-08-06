@@ -33,11 +33,11 @@ void StatsDumpScheduler::Register(DB* db, unsigned int stats_dump_period_sec,
 
   if (stats_dump_period_sec > 0) {
     timer->Add([dbi]() { dbi->DumpStats(); }, GetTaskName(dbi, "dump_st"), 0,
-               stats_dump_period_sec * 1e6);
+               (int64_t)(stats_dump_period_sec * 1e6));
   }
   if (stats_persist_period_sec > 0) {
     timer->Add([dbi]() { dbi->PersistStats(); }, GetTaskName(dbi, "pst_st"), 0,
-               stats_persist_period_sec * 1e6);
+               (int64_t)(stats_persist_period_sec * 1e6));
   }
 }
 
