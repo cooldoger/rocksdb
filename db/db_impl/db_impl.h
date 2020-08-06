@@ -998,7 +998,10 @@ class DBImpl : public DB {
     return files_grabbed_for_purge_;
   }
 
+#ifndef ROCKSDB_LITE
   StatsDumpScheduler* TEST_GetStatsDumpScheduler() const { return stats_dump_scheduler_.get(); }
+#endif  // !ROCKSDB_LITE
+
 #endif  // NDEBUG
 
   // persist stats to column family "_persistent_stats"
@@ -2093,8 +2096,10 @@ class DBImpl : public DB {
   // Only to be set during initialization
   std::unique_ptr<PreReleaseCallback> recoverable_state_pre_release_callback_;
 
+#ifndef ROCKSDB_LITE
   // REQUIRES: mutex locked
   std::shared_ptr<StatsDumpScheduler> stats_dump_scheduler_;
+#endif
 
   // When set, we use a separate queue for writes that don't write to memtable.
   // In 2PC these are the writes at Prepare phase.

@@ -272,11 +272,13 @@ size_t DBImpl::TEST_GetWalPreallocateBlockSize(
   return GetWalPreallocateBlockSize(write_buffer_size);
 }
 
+#ifndef ROCKSDB_LITE
 void DBImpl::TEST_WaitForStatsDumpRun(std::function<void()> callback) const {
   if (stats_dump_scheduler_ != nullptr) {
     stats_dump_scheduler_->TEST_WaitForRun(callback);
   }
 }
+#endif  // !ROCKSDB_LITE
 
 size_t DBImpl::TEST_EstimateInMemoryStatsHistorySize() const {
   return EstimateInMemoryStatsHistorySize();

@@ -439,12 +439,13 @@ void DBImpl::CancelAllBackgroundWork(bool wait) {
   ROCKS_LOG_INFO(immutable_db_options_.info_log,
                  "Shutdown: canceling all background work");
 
+#ifndef ROCKSDB_LITE
   fprintf(stdout, "DB: Unregister, use_cout: %ld\n", stats_dump_scheduler_.use_count());
   if (stats_dump_scheduler_ != nullptr) {
     stats_dump_scheduler_->Unregister(this);
   }
-
   stats_dump_scheduler_ = nullptr;
+#endif  // !ROCKSDB_LITE
 
   InstrumentedMutexLock l(&mutex_);
   if (!shutting_down_.load(std::memory_order_acquire) &&
@@ -679,6 +680,7 @@ void DBImpl::PrintStatistics() {
 }
 
 void DBImpl::StartTimedTasks() {
+#ifndef ROCKSDB_LITE
   {
     InstrumentedMutexLock l(&mutex_);
     if (mutable_db_options_.stats_dump_period_sec > 0 ||
@@ -693,6 +695,7 @@ void DBImpl::StartTimedTasks() {
   if (stats_dump_scheduler_ != nullptr) {
     stats_dump_scheduler_->Register(this, mutable_db_options_.stats_dump_period_sec, mutable_db_options_.stats_persist_period_sec);
   }
+#endif  // !ROCKSDB_LITE
 }
 
 // esitmate the total size of stats_history_

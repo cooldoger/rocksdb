@@ -37,6 +37,7 @@ class StatsDumpSchedulerTest : public DBTestBase {
 #endif  // OS_MACOSX && !NDEBUG
 };
 
+#ifndef ROCKSDB_LITE
 
 TEST_F(StatsDumpSchedulerTest, BasicTest) {
   Options options;
@@ -199,7 +200,7 @@ TEST_F(StatsDumpSchedulerTest, MultiEnvTest) {
   db->Close();
   Close();
 }
-
+#endif  // !ROCKSDB_LITE
 } // namespace ROCKSDB_NAMESPACE
 
 int main(int argc, char** argv) {
