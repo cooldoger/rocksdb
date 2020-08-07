@@ -85,8 +85,8 @@ TEST_F(StatsDumpSchedulerTest, BasicTest) {
   // Disable scheduler with SetOption
   ASSERT_OK(dbfull()->SetDBOptions(
       {{"stats_dump_period_sec", "0"}, {"stats_persist_period_sec", "0"}}));
-  ASSERT_EQ(0, dbfull()->GetDBOptions().stats_dump_period_sec);
-  ASSERT_EQ(0, dbfull()->GetDBOptions().stats_persist_period_sec);
+  ASSERT_EQ(0u, dbfull()->GetDBOptions().stats_dump_period_sec);
+  ASSERT_EQ(0u, dbfull()->GetDBOptions().stats_persist_period_sec);
 
   scheduler = dbfull()->TEST_GetStatsDumpScheduler();
   ASSERT_EQ(nullptr, scheduler);
@@ -94,7 +94,7 @@ TEST_F(StatsDumpSchedulerTest, BasicTest) {
   // Reenable one task
   ASSERT_OK(dbfull()->SetDBOptions({{"stats_dump_period_sec", "5"}}));
   ASSERT_EQ(5u, dbfull()->GetDBOptions().stats_dump_period_sec);
-  ASSERT_EQ(0, dbfull()->GetDBOptions().stats_persist_period_sec);
+  ASSERT_EQ(0u, dbfull()->GetDBOptions().stats_persist_period_sec);
 
   scheduler = dbfull()->TEST_GetStatsDumpScheduler();
   ASSERT_NE(nullptr, scheduler);
