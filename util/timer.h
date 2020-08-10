@@ -160,6 +160,8 @@ class Timer {
     while (!heap_.empty()) {
       const FunctionInfo& top = *(heap_.top());
       WaitForTaskCompleteIfNecessary(top);
+      const FunctionInfo& t2 = *(heap_.top());
+      assert(!t2.IsExecuting());
       heap_.pop();
     }
 

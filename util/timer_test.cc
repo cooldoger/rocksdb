@@ -316,6 +316,45 @@ TEST_F(TimerTest, CancelRunningTask) {
   ASSERT_TRUE(timer.Shutdown());
 }
 
+TEST_F(TimerTest, ShutdownRunningTest) {
+  mock_env_->set_current_time(0);
+  Timer timer(mock_env_.get());
+
+  SyncPoint::GetInstance()->DisableProcessing();
+  SyncPoint::GetInstance()->LoadDependency({
+     {"TimerTest::ShutdownRunningTest:test_func:0",
+         "TimerTest::ShutdownRunningTest:BeforeShutdown"},
+     {"Timer::WaitForTaskCompleteIfNecessary:TaskExecuting",
+         "TimerTest::ShutdownRunningTest:test_func:1"},
+  });
+  SyncPoint::GetInstance()->EnableProcessing();
+
+  ASSERT_TRUE(timer.Start());
+
+  timer.Add(
+      [&]() {
+        TEST_SYNC_POINT("TimerTest::ShutdownRunningTest:test_func:0");
+        std::cout << "hi" << std::endl;
+        TEST_SYNC_POINT("TimerTest::ShutdownRunningTest:test_func:1");
+      },
+      "fn_test", 0, 1 * kSecond);
+
+  timer.Add(
+      [&]() {
+        TEST_SYNC_POINT("TimerTest::ShutdownRunningTest:test_func2:0");
+        std::cout << "hi2" << std::endl;
+        TEST_SYNC_POINT("TimerTest::ShutdownRunningTest:test_func2:1");
+      },
+      "fn_test2", 0, 1 * kSecond);
+
+  port::Thread control_thr([&]() {
+    TEST_SYNC_POINT("TimerTest::ShutdownRunningTest:BeforeShutdown");
+    timer.Shutdown();
+  });
+  mock_env_->set_current_time(1);
+  control_thr.join();
+}
+
 }  // namespace ROCKSDB_NAMESPACE
 
 int main(int argc, char** argv) {
