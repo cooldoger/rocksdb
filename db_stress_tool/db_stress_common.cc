@@ -185,6 +185,12 @@ int64_t GenerateOneKey(ThreadState* thread, uint64_t iteration) {
   return cur_key;
 }
 
+std::string GenTimestamp(uint64_t timestamp) {
+  std::string ts;
+  PutFixed64(&ts, timestamp);
+  return ts;
+}
+
 // Note that if hot_key_alpha != 0, it generates the key based on Zipfian
 // distribution. Keys being generated are in random order.
 // If user want to generate keys based on uniform distribution, user needs to

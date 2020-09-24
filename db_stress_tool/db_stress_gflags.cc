@@ -736,4 +736,9 @@ DEFINE_string(file_checksum_impl, "none",
               "Name of an implementation for file_checksum_gen_factory, or "
               "\"none\" for null.");
 
+DEFINE_int32(user_timestamp_size, 0,
+             "If non-zero, then enable user defined timestamp feature, and set"
+             " timestamp size to N. 0 indicates user defined timestamp is"
+             " disabled.");
+
 #endif  // GFLAGS
