@@ -715,7 +715,6 @@ class DataVisibilityTest : public DBBasicTestWithTimestampBase {
     }
   }
 };
-constexpr int DataVisibilityTest::kTestDataSize;
 
 // Application specifies timestamp but not snapshot.
 //           reader              writer
