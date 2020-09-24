@@ -229,6 +229,7 @@ DECLARE_int32(verify_db_one_in);
 DECLARE_int32(continuous_verification_interval);
 DECLARE_int32(get_property_one_in);
 DECLARE_string(file_checksum_impl);
+DECLARE_int32(user_timestamp_size);
 
 #ifndef ROCKSDB_LITE
 DECLARE_bool(use_blob_db);
@@ -535,6 +536,8 @@ extern void DbVerificationThread(void* v);
 extern void PrintKeyValue(int cf, uint64_t key, const char* value, size_t sz);
 
 extern int64_t GenerateOneKey(ThreadState* thread, uint64_t iteration);
+
+extern std::string GenTimestamp(uint64_t timestamp);
 
 extern std::vector<int64_t> GenerateNKeys(ThreadState* thread, int num_keys,
                                           uint64_t iteration);

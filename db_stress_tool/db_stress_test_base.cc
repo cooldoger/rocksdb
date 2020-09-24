@@ -510,6 +510,14 @@ void StressTest::OperateDb(ThreadState* thread) {
     write_opts.sync = true;
   }
   write_opts.disableWAL = FLAGS_disable_wal;
+  if (FLAGS_user_timestamp_size > 0) {
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
+    read_opts.timestamp = &ts_slice;
+    write_opts.timestamp = &ts_slice;
+  }
+
+
   const int prefixBound = static_cast<int>(FLAGS_readpercent) +
                           static_cast<int>(FLAGS_prefixpercent);
   const int writeBound = prefixBound + static_cast<int>(FLAGS_writepercent);
@@ -959,6 +967,11 @@ Status StressTest::TestIterate(ThreadState* thread,
     ReadOptions cmp_ro;
     cmp_ro.snapshot = snapshot;
     cmp_ro.total_order_seek = true;
+    if (FLAGS_user_timestamp_size > 0) {
+      std::string ts = GenTimestamp(1);
+      Slice ts_slice = ts;
+      cmp_ro.timestamp = &ts_slice;
+    }
     ColumnFamilyHandle* cmp_cfh =
         GetControlCfh(thread, rand_column_families[0]);
     std::unique_ptr<Iterator> cmp_iter(db_->NewIterator(cmp_ro, cmp_cfh));
@@ -1952,6 +1965,7 @@ void StressTest::PrintEnv() const {
   fprintf(stdout, "Sync fault injection      : %d\n", FLAGS_sync_fault_injection);
   fprintf(stdout, "Best efforts recovery     : %d\n",
           static_cast<int>(FLAGS_best_efforts_recovery));
+  fprintf(stdout, "User timestamp size       : %d\n", FLAGS_user_timestamp_size);
 
   fprintf(stdout, "------------------------------------------------\n");
 }
@@ -2066,6 +2080,12 @@ void StressTest::Open() {
         FLAGS_level_compaction_dynamic_level_bytes;
     options_.file_checksum_gen_factory =
         GetFileChecksumImpl(FLAGS_file_checksum_impl);
+
+    if (FLAGS_user_timestamp_size > 0) {
+      // TODO(zjay): support different timestamp size
+      assert(FLAGS_user_timestamp_size == 64);
+      options_.comparator = test::ComparatorWithU64Ts();
+    }
   } else {
 #ifdef ROCKSDB_LITE
     fprintf(stderr, "--options_file not supported in lite mode\n");
