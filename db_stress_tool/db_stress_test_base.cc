@@ -229,6 +229,11 @@ bool StressTest::VerifySecondaries() {
     }
     ReadOptions ropts;
     ropts.total_order_seek = true;
+    if (FLAGS_user_timestamp_size > 0) {
+      std::string ts = GenTimestamp(1);
+      Slice ts_slice = ts;
+      ropts.timestamp = &ts_slice;
+    }
     // Verify only the default column family since the primary may have
     // dropped other column families after most recent reopen.
     std::unique_ptr<Iterator> iter1(db_->NewIterator(ropts));
@@ -278,6 +283,11 @@ Status StressTest::AssertSame(DB* db, ColumnFamilyHandle* cf,
   }
   ReadOptions ropt;
   ropt.snapshot = snap_state.snapshot;
+  if (FLAGS_user_timestamp_size > 0) {
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
+    ropt.timestamp = &ts_slice;
+  }
   PinnableSlice exp_v(&snap_state.value);
   exp_v.PinSelf();
   PinnableSlice v;
@@ -354,6 +364,11 @@ void StressTest::PreloadDbAndReopenAsReadOnly(int64_t number_of_keys,
   write_opts.disableWAL = FLAGS_disable_wal;
   if (FLAGS_sync) {
     write_opts.sync = true;
+  }
+  if (FLAGS_user_timestamp_size > 0) {
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
+    write_opts.timestamp = &ts_slice;
   }
   char value[100];
   int cf_idx = 0;
@@ -873,7 +888,8 @@ Status StressTest::TestIterate(ThreadState* thread,
     expect_total_order = true;
   } else if (thread->rand.OneIn(4)) {
     readoptionscopy.total_order_seek = false;
-    readoptionscopy.auto_prefix_mode = true;
+    if (FLAGS_user_timestamp_size == 0)
+      readoptionscopy.auto_prefix_mode = true;
     expect_total_order = true;
   } else if (options_.prefix_extractor.get() == nullptr) {
     expect_total_order = true;
@@ -892,7 +908,11 @@ Status StressTest::TestIterate(ThreadState* thread,
   }
   std::string lower_bound_str;
   Slice lower_bound;
-  if (thread->rand.OneIn(16)) {
+  bool enable_lower_bound = true;
+  if (FLAGS_user_timestamp_size > 0) {
+    enable_lower_bound = false;
+  }
+  if (enable_lower_bound && thread->rand.OneIn(16)) {
     // in 1/16 chance, enable iterator lower bound
     int64_t rand_lower_key = GenerateOneKey(thread, FLAGS_ops_per_thread);
     lower_bound_str = Key(rand_lower_key);
@@ -979,6 +999,12 @@ Status StressTest::TestIterate(ThreadState* thread,
 
     bool support_seek_first_or_last = expect_total_order;
 
+    bool support_seek_prev = true;
+    if (FLAGS_user_timestamp_size > 0) {
+      support_seek_first_or_last = false;
+      support_seek_prev = false;
+    }
+
     LastIterateOp last_op;
     if (support_seek_first_or_last && thread->rand.OneIn(100)) {
       iter->SeekToFirst();
@@ -990,7 +1016,7 @@ Status StressTest::TestIterate(ThreadState* thread,
       cmp_iter->SeekToLast();
       last_op = kLastOpSeekToLast;
       op_logs += "STL ";
-    } else if (thread->rand.OneIn(8)) {
+    } else if (support_seek_prev && thread->rand.OneIn(8)) {
       iter->SeekForPrev(key);
       cmp_iter->SeekForPrev(key);
       last_op = kLastOpSeekForPrev;
@@ -1005,7 +1031,7 @@ Status StressTest::TestIterate(ThreadState* thread,
                    last_op, key, op_logs, &diverged);
 
     bool no_reverse =
-        (FLAGS_memtablerep == "prefix_hash" && !expect_total_order);
+        (FLAGS_memtablerep == "prefix_hash" && !expect_total_order) || FLAGS_user_timestamp_size > 0;
     for (uint64_t i = 0; i < FLAGS_num_iterations && iter->Valid(); i++) {
       if (no_reverse || thread->rand.OneIn(2)) {
         iter->Next();
@@ -1172,9 +1198,9 @@ void StressTest::VerifyIterator(ThreadState* thread,
       if ((iter->Valid() && iter->key() != cmp_iter->key()) ||
           (!iter->Valid() &&
            (ro.iterate_upper_bound == nullptr ||
-            cmp->Compare(total_order_key, *ro.iterate_upper_bound) < 0) &&
+            cmp->CompareWithoutTimestamp(total_order_key, false, *ro.iterate_upper_bound, false) < 0) &&
            (ro.iterate_lower_bound == nullptr ||
-            cmp->Compare(total_order_key, *ro.iterate_lower_bound) > 0))) {
+            cmp->CompareWithoutTimestamp(total_order_key, false, *ro.iterate_lower_bound, false) > 0))) {
         fprintf(stderr,
                 "Iterator diverged from control iterator which"
                 " has value %s %s\n",
@@ -1182,6 +1208,10 @@ void StressTest::VerifyIterator(ThreadState* thread,
         if (iter->Valid()) {
           fprintf(stderr, "iterator has value %s\n",
                   iter->key().ToString(true).c_str());
+          if (ro.iterate_lower_bound != nullptr) {
+            fprintf(stderr, "lower_bound: %s\n", ro.iterate_lower_bound->ToString(true).c_str());
+            int ret = cmp->CompareWithoutTimestamp(total_order_key, *ro.iterate_lower_bound);
+          }
         } else {
           fprintf(stderr, "iterator is not valid\n");
         }
@@ -1369,8 +1399,14 @@ Status StressTest::TestBackupRestore(
     std::string key_str = Key(rand_keys[0]);
     Slice key = key_str;
     std::string restored_value;
+    auto read_opts = ReadOptions();
+    if (FLAGS_user_timestamp_size > 0) {
+      std::string ts = GenTimestamp(1);
+      Slice ts_slice = ts;
+      read_opts.timestamp = &ts_slice;
+    }
     Status get_status = restored_db->Get(
-        ReadOptions(), restored_cf_handles[rand_column_families[i]], key,
+        read_opts, restored_cf_handles[rand_column_families[i]], key,
         &restored_value);
     bool exists = thread->shared->Exists(rand_column_families[i], rand_keys[0]);
     if (get_status.ok()) {
@@ -1532,8 +1568,14 @@ Status StressTest::TestCheckpoint(ThreadState* thread,
       std::string key_str = Key(rand_keys[0]);
       Slice key = key_str;
       std::string value;
+      auto read_opts = ReadOptions();
+      if (FLAGS_user_timestamp_size > 0) {
+        std::string ts = GenTimestamp(1);
+        Slice ts_slice = ts;
+        read_opts.timestamp = &ts_slice;
+      }
       Status get_status = checkpoint_db->Get(
-          ReadOptions(), cf_handles[rand_column_families[i]], key, &value);
+          read_opts, cf_handles[rand_column_families[i]], key, &value);
       bool exists =
           thread->shared->Exists(rand_column_families[i], rand_keys[0]);
       if (get_status.ok()) {
@@ -1711,6 +1753,11 @@ void StressTest::TestAcquireSnapshot(ThreadState* thread,
   const Snapshot* snapshot = db_->GetSnapshot();
 #endif  // !ROCKSDB_LITE
   ReadOptions ropt;
+  if (FLAGS_user_timestamp_size > 0) {
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
+    ropt.timestamp = &ts_slice;
+  }
   ropt.snapshot = snapshot;
   std::string value_at;
   // When taking a snapshot, we also read a key from that snapshot. We
@@ -1841,6 +1888,11 @@ uint32_t StressTest::GetRangeHash(ThreadState* thread, const Snapshot* snapshot,
   ReadOptions ro;
   ro.snapshot = snapshot;
   ro.total_order_seek = true;
+  if (FLAGS_user_timestamp_size > 0) {
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
+    ro.timestamp = &ts_slice;
+  }
   std::unique_ptr<Iterator> it(db_->NewIterator(ro, column_family));
   for (it->Seek(start_key);
        it->Valid() && options_.comparator->Compare(it->key(), end_key) <= 0;
