@@ -1198,9 +1198,9 @@ void StressTest::VerifyIterator(ThreadState* thread,
       if ((iter->Valid() && iter->key() != cmp_iter->key()) ||
           (!iter->Valid() &&
            (ro.iterate_upper_bound == nullptr ||
-            cmp->CompareWithoutTimestamp(total_order_key, false, *ro.iterate_upper_bound, false) < 0) &&
+             cmp->Compare(total_order_key, *ro.iterate_upper_bound) < 0) &&
            (ro.iterate_lower_bound == nullptr ||
-            cmp->CompareWithoutTimestamp(total_order_key, false, *ro.iterate_lower_bound, false) > 0))) {
+             cmp->Compare(total_order_key, *ro.iterate_lower_bound) > 0))) {
         fprintf(stderr,
                 "Iterator diverged from control iterator which"
                 " has value %s %s\n",
@@ -1208,10 +1208,6 @@ void StressTest::VerifyIterator(ThreadState* thread,
         if (iter->Valid()) {
           fprintf(stderr, "iterator has value %s\n",
                   iter->key().ToString(true).c_str());
-          if (ro.iterate_lower_bound != nullptr) {
-            fprintf(stderr, "lower_bound: %s\n", ro.iterate_lower_bound->ToString(true).c_str());
-            int ret = cmp->CompareWithoutTimestamp(total_order_key, *ro.iterate_lower_bound);
-          }
         } else {
           fprintf(stderr, "iterator is not valid\n");
         }
