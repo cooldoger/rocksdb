@@ -137,6 +137,7 @@ default_params = {
     "sync_fault_injection": False,
     "get_property_one_in": 1000000,
     "paranoid_file_checks": lambda: random.choice([0, 1, 1, 1]),
+    "user_timestamp_size": lambda : random.choice([0, 64]),
 }
 
 _TEST_DIR_ENV_VAR = 'TEST_TMPDIR'
@@ -323,6 +324,12 @@ def finalize_and_sanitize(src_params):
         dest_params["readpercent"] += dest_params.get("iterpercent", 10)
         dest_params["iterpercent"] = 0
         dest_params["test_batches_snapshots"] = 0
+    if dest_params.get("user_timestamp_size") > 0:
+        # User defined timestamp feature has the following unsupported feature
+        dest_params["use_merge"] = 0
+        dest_params["approximate_size_one_in"] = 0
+        dest_params["delpercent"] += dest_params["delrangepercent"]
+        dest_params["delrangepercent"] = 0
     return dest_params
 
 def gen_cmd_params(args):
@@ -602,6 +609,17 @@ def whitebox_crash_main(args, unknown_args):
             check_mode = (check_mode + 1) % total_check_mode
 
         time.sleep(1)  # time to stabilize after a kill
+
+
+def sanitize_params_for_user_timestamp(params):
+    """
+    Remove unsupported operations for user defined timestamp feature.
+    :param args:
+    :return:
+    """
+    if params["user_timestamp_size"] > 0:
+        params["use_merge"] = 0
+        params[""]
 
 
 def main():
