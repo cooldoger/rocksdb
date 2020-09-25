@@ -1156,7 +1156,7 @@ void StressTest::VerifyIterator(ThreadState* thread,
       }
     }
     fprintf(stderr,
-            "Control interator is invalid but iterator has key %s "
+            "Control iterator is invalid but iterator has key %s "
             "%s\n",
             iter->key().ToString(true).c_str(), op_logs.c_str());
 
