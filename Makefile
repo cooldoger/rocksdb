@@ -586,6 +586,8 @@ ifdef ASSERT_STATUS_CHECKED
 		coding_test \
 		crc32c_test \
 		dbformat_test \
+		db_with_timestamp_basic_test \
+		db_with_timestamp_compaction_test \
 		db_options_test \
 		options_file_test \
 		defer_test \

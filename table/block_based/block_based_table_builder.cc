@@ -1644,6 +1644,9 @@ Status BlockBasedTableBuilder::Finish() {
     r->pc_rep->write_queue.finish();
     r->pc_rep->write_thread->join();
     r->pc_rep->finished = true;
+    for (auto& br : r->pc_rep->block_rep_buf) {
+      assert(br.status.ok());
+    }
   } else {
     // To make sure properties block is able to keep the accurate size of index
     // block, we will finish writing all index entries first.

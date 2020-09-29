@@ -1161,7 +1161,8 @@ Status DBImpl::CompactFilesImpl(
                            job_context->job_id, version, compaction_job_info);
   }
 
-  if (status.ok()) {
+  IOStatus io_s = compaction_job.io_status();
+  if (status.ok() && io_s.ok()) {
     // Done
   } else if (status.IsColumnFamilyDropped() || status.IsShutdownInProgress()) {
     // Ignore compaction errors found during shutting down
@@ -1176,7 +1177,6 @@ Status DBImpl::CompactFilesImpl(
                    "[%s] [JOB %d] Compaction error: %s",
                    c->column_family_data()->GetName().c_str(),
                    job_context->job_id, status.ToString().c_str());
-    IOStatus io_s = compaction_job.io_status();
     if (!io_s.ok()) {
       error_handler_.SetBGError(io_s, BackgroundErrorReason::kCompaction);
     } else {
