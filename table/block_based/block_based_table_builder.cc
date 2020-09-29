@@ -1645,7 +1645,7 @@ Status BlockBasedTableBuilder::Finish() {
     r->pc_rep->write_thread->join();
     r->pc_rep->finished = true;
 #ifndef NDEBUG
-    for (auto& br : r->pc_rep->block_rep_buf) {
+    for (const auto& br : r->pc_rep->block_rep_buf) {
       assert(br.status.ok());
     }
 #endif  // !NDEBUG
