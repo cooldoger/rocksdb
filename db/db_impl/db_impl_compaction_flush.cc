@@ -1162,16 +1162,16 @@ Status DBImpl::CompactFilesImpl(
   }
 
   IOStatus io_s = compaction_job.io_status();
-  if (status.ok() && io_s.ok()) {
-    // Done
-  } else if (status.IsColumnFamilyDropped() || status.IsShutdownInProgress()) {
-    // Ignore compaction errors found during shutting down
+  if (status.ok() || status.IsColumnFamilyDropped() || status.IsShutdownInProgress()) {
+    // Ignore compaction errors and io errors found during shutting down
+    io_s.PermitUncheckedError();
   } else if (status.IsManualCompactionPaused()) {
     // Don't report stopping manual compaction as error
     ROCKS_LOG_INFO(immutable_db_options_.info_log,
                    "[%s] [JOB %d] Stopping manual compaction",
                    c->column_family_data()->GetName().c_str(),
                    job_context->job_id);
+    io_s.PermitUncheckedError();
   } else {
     ROCKS_LOG_WARN(immutable_db_options_.info_log,
                    "[%s] [JOB %d] Compaction error: %s",
