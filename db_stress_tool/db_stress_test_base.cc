@@ -897,7 +897,7 @@ Status StressTest::TestIterate(ThreadState* thread,
 
   std::string upper_bound_str;
   Slice upper_bound;
-  if (thread->rand.OneIn(16)) {
+  if (FLAGS_user_timestamp_size == 0 && thread->rand.OneIn(16)) {
     // in 1/16 chance, set a iterator upper bound
     int64_t rand_upper_key = GenerateOneKey(thread, FLAGS_ops_per_thread);
     upper_bound_str = Key(rand_upper_key);
@@ -1027,6 +1027,7 @@ Status StressTest::TestIterate(ThreadState* thread,
       last_op = kLastOpSeek;
       op_logs += "S " + key.ToString(true) + " ";
     }
+//    fprintf(stdout, "Verify, ops: %s\n", op_logs.c_str());
     VerifyIterator(thread, cmp_cfh, readoptionscopy, iter.get(), cmp_iter.get(),
                    last_op, key, op_logs, &diverged);
 
