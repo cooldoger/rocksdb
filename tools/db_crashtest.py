@@ -55,7 +55,7 @@ default_params = {
     "compact_range_one_in": 1000000,
     "delpercent": 4,
     "delrangepercent": 1,
-    "destroy_db_initially": 0,
+    "destroy_db_initially": 1,
     "enable_pipelined_write": lambda: random.randint(0, 1),
     "enable_compaction_filter": lambda: random.choice([0, 0, 0, 1]),
     "expected_values_path": lambda: setup_expected_values_file(),
@@ -330,6 +330,7 @@ def finalize_and_sanitize(src_params):
         dest_params["approximate_size_one_in"] = 0
         dest_params["delpercent"] += dest_params["delrangepercent"]
         dest_params["delrangepercent"] = 0
+        dest_params["compact_range_one_in"] = 0
     return dest_params
 
 def gen_cmd_params(args):
