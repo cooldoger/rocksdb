@@ -229,9 +229,9 @@ bool StressTest::VerifySecondaries() {
     }
     ReadOptions ropts;
     ropts.total_order_seek = true;
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
     if (FLAGS_user_timestamp_size > 0) {
-      std::string ts = GenTimestamp(1);
-      Slice ts_slice = ts;
       ropts.timestamp = &ts_slice;
     }
     // Verify only the default column family since the primary may have
@@ -283,9 +283,9 @@ Status StressTest::AssertSame(DB* db, ColumnFamilyHandle* cf,
   }
   ReadOptions ropt;
   ropt.snapshot = snap_state.snapshot;
+  std::string ts = GenTimestamp(1);
+  Slice ts_slice = ts;
   if (FLAGS_user_timestamp_size > 0) {
-    std::string ts = GenTimestamp(1);
-    Slice ts_slice = ts;
     ropt.timestamp = &ts_slice;
   }
   PinnableSlice exp_v(&snap_state.value);
@@ -363,9 +363,9 @@ void StressTest::PreloadDbAndReopenAsReadOnly(int64_t number_of_keys,
   if (FLAGS_sync) {
     write_opts.sync = true;
   }
+  std::string ts = GenTimestamp(1);
+  Slice ts_slice = ts;
   if (FLAGS_user_timestamp_size > 0) {
-    std::string ts = GenTimestamp(1);
-    Slice ts_slice = ts;
     write_opts.timestamp = &ts_slice;
   }
   char value[100];
@@ -523,9 +523,9 @@ void StressTest::OperateDb(ThreadState* thread) {
     write_opts.sync = true;
   }
   write_opts.disableWAL = FLAGS_disable_wal;
+  std::string ts = GenTimestamp(1);
+  Slice ts_slice = ts;
   if (FLAGS_user_timestamp_size > 0) {
-    std::string ts = GenTimestamp(1);
-    Slice ts_slice = ts;
     read_opts.timestamp = &ts_slice;
     write_opts.timestamp = &ts_slice;
   }
@@ -886,8 +886,9 @@ Status StressTest::TestIterate(ThreadState* thread,
     expect_total_order = true;
   } else if (thread->rand.OneIn(4)) {
     readoptionscopy.total_order_seek = false;
-    if (FLAGS_user_timestamp_size == 0)
+    if (FLAGS_user_timestamp_size == 0) {
       readoptionscopy.auto_prefix_mode = true;
+    }
     expect_total_order = true;
   } else if (options_.prefix_extractor.get() == nullptr) {
     expect_total_order = true;
@@ -985,9 +986,9 @@ Status StressTest::TestIterate(ThreadState* thread,
     ReadOptions cmp_ro;
     cmp_ro.snapshot = snapshot;
     cmp_ro.total_order_seek = true;
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
     if (FLAGS_user_timestamp_size > 0) {
-      std::string ts = GenTimestamp(1);
-      Slice ts_slice = ts;
       cmp_ro.timestamp = &ts_slice;
     }
     ColumnFamilyHandle* cmp_cfh =
@@ -1395,9 +1396,9 @@ Status StressTest::TestBackupRestore(
     Slice key = key_str;
     std::string restored_value;
     auto read_opts = ReadOptions();
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
     if (FLAGS_user_timestamp_size > 0) {
-      std::string ts = GenTimestamp(1);
-      Slice ts_slice = ts;
       read_opts.timestamp = &ts_slice;
     }
     Status get_status = restored_db->Get(
@@ -1564,9 +1565,9 @@ Status StressTest::TestCheckpoint(ThreadState* thread,
       Slice key = key_str;
       std::string value;
       auto read_opts = ReadOptions();
+      std::string ts = GenTimestamp(1);
+      Slice ts_slice = ts;
       if (FLAGS_user_timestamp_size > 0) {
-        std::string ts = GenTimestamp(1);
-        Slice ts_slice = ts;
         read_opts.timestamp = &ts_slice;
       }
       Status get_status = checkpoint_db->Get(
@@ -1748,9 +1749,9 @@ void StressTest::TestAcquireSnapshot(ThreadState* thread,
   const Snapshot* snapshot = db_->GetSnapshot();
 #endif  // !ROCKSDB_LITE
   ReadOptions ropt;
+  std::string ts = GenTimestamp(1);
+  Slice ts_slice = ts;
   if (FLAGS_user_timestamp_size > 0) {
-    std::string ts = GenTimestamp(1);
-    Slice ts_slice = ts;
     ropt.timestamp = &ts_slice;
   }
   ropt.snapshot = snapshot;
@@ -1883,9 +1884,9 @@ uint32_t StressTest::GetRangeHash(ThreadState* thread, const Snapshot* snapshot,
   ReadOptions ro;
   ro.snapshot = snapshot;
   ro.total_order_seek = true;
+  std::string ts = GenTimestamp(1);
+  Slice ts_slice = ts;
   if (FLAGS_user_timestamp_size > 0) {
-    std::string ts = GenTimestamp(1);
-    Slice ts_slice = ts;
     ro.timestamp = &ts_slice;
   }
   std::unique_ptr<Iterator> it(db_->NewIterator(ro, column_family));

@@ -293,6 +293,11 @@ class CfConsistencyStressTest : public StressTest {
     // iterate the memtable using this iterator any more, although the memtable
     // contains the most up-to-date key-values.
     options.total_order_seek = true;
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
+    if (FLAGS_user_timestamp_size > 0) {
+      options.timestamp = &ts_slice;
+    }
     const auto ss_deleter = [this](const Snapshot* ss) {
       db_->ReleaseSnapshot(ss);
     };
@@ -473,6 +478,11 @@ class CfConsistencyStressTest : public StressTest {
     ReadOptions ropts;
     ropts.total_order_seek = true;
     ropts.snapshot = snapshot_guard.get();
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
+    if (FLAGS_user_timestamp_size > 0) {
+      ropts.timestamp = &ts_slice;
+    }
     uint32_t crc = 0;
     {
       // Compute crc for all key-values of default column family.
