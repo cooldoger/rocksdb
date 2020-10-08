@@ -22,6 +22,11 @@ class NonBatchedOpsStressTest : public StressTest {
 
   void VerifyDb(ThreadState* thread) const override {
     ReadOptions options(FLAGS_verify_checksum, true);
+    if (FLAGS_user_timestamp_size > 0) {
+      std::string ts = GenTimestamp(1);
+      Slice ts_slice = ts;
+      options.timestamp = &ts_slice;
+    }
     auto shared = thread->shared;
     const int64_t max_key = shared->GetMaxKey();
     const int64_t keys_per_thread = max_key / shared->GetNumThreads();
@@ -250,6 +255,12 @@ class NonBatchedOpsStressTest : public StressTest {
       readoptionscopy.snapshot = db_->GetSnapshot();
     }
 
+    if (FLAGS_user_timestamp_size > 0) {
+      std::string ts = GenTimestamp(1);
+      Slice ts_slice = ts;
+      readoptionscopy.timestamp = &ts_slice;
+    }
+
     // To appease clang analyzer
     const bool use_txn = FLAGS_use_txn;
 
@@ -440,6 +451,12 @@ class NonBatchedOpsStressTest : public StressTest {
     std::string upper_bound;
     Slice ub_slice;
     ReadOptions ro_copy = read_opts;
+
+    if (FLAGS_user_timestamp_size > 0) {
+      std::string ts = GenTimestamp(1);
+      Slice ts_slice = ts;
+      ro_copy.timestamp = &ts_slice;
+    }
     // Get the next prefix first and then see if we want to set upper bound.
     // We'll use the next prefix in an assertion later on
     if (GetNextPrefix(prefix, &upper_bound) && thread->rand.OneIn(2)) {
