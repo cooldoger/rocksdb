@@ -136,7 +136,7 @@ default_params = {
     "get_property_one_in": 1000000,
     # paranoid_file_checks has a bug so it's not yet passed.
     "paranoid_file_checks": 0,
-    "user_timestamp_size": lambda : random.choice([0, 64]),
+    "user_timestamp_size": lambda : random.choice([64]),
 }
 
 _TEST_DIR_ENV_VAR = 'TEST_TMPDIR'
