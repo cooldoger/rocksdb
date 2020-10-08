@@ -22,9 +22,9 @@ class NonBatchedOpsStressTest : public StressTest {
 
   void VerifyDb(ThreadState* thread) const override {
     ReadOptions options(FLAGS_verify_checksum, true);
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
     if (FLAGS_user_timestamp_size > 0) {
-      std::string ts = GenTimestamp(1);
-      Slice ts_slice = ts;
       options.timestamp = &ts_slice;
     }
     auto shared = thread->shared;
@@ -255,9 +255,9 @@ class NonBatchedOpsStressTest : public StressTest {
       readoptionscopy.snapshot = db_->GetSnapshot();
     }
 
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
     if (FLAGS_user_timestamp_size > 0) {
-      std::string ts = GenTimestamp(1);
-      Slice ts_slice = ts;
       readoptionscopy.timestamp = &ts_slice;
     }
 
@@ -451,10 +451,9 @@ class NonBatchedOpsStressTest : public StressTest {
     std::string upper_bound;
     Slice ub_slice;
     ReadOptions ro_copy = read_opts;
-
+    std::string ts = GenTimestamp(1);
+    Slice ts_slice = ts;
     if (FLAGS_user_timestamp_size > 0) {
-      std::string ts = GenTimestamp(1);
-      Slice ts_slice = ts;
       ro_copy.timestamp = &ts_slice;
     }
     // Get the next prefix first and then see if we want to set upper bound.
