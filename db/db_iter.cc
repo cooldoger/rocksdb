@@ -82,6 +82,9 @@ DBIter::DBIter(Env* _env, const ReadOptions& read_options,
   if (iter_.iter()) {
     iter_.iter()->SetPinnedItersMgr(&pinned_iters_mgr_);
   }
+  if (timestamp_size_ != user_comparator_.timestamp_size()) {
+    fprintf(stdout, "JJJ2: timestamp size doesn't match\n");
+  }
   assert(timestamp_size_ == user_comparator_.timestamp_size());
 }
 

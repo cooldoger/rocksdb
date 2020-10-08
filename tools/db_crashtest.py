@@ -137,7 +137,7 @@ default_params = {
     "sync_fault_injection": False,
     "get_property_one_in": 1000000,
     "paranoid_file_checks": lambda: random.choice([0, 1, 1, 1]),
-    "user_timestamp_size": lambda : random.choice([0, 64]),
+    "user_timestamp_size": lambda : random.choice([64]),
 }
 
 _TEST_DIR_ENV_VAR = 'TEST_TMPDIR'

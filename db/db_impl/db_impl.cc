@@ -1589,6 +1589,9 @@ Status DBImpl::GetImpl(const ReadOptions& read_options, const Slice& key,
 
 #ifndef NDEBUG
   if (ts_sz > 0) {
+    if (!read_options.timestamp) {
+      fprintf(stdout, "JJJ1: it should have timestamp\n");
+    }
     assert(read_options.timestamp);
     assert(read_options.timestamp->size() == ts_sz);
   } else {
