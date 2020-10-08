@@ -772,6 +772,7 @@ void StressTest::OperateDb(ThreadState* thread) {
       } else if (prob_op < writeBound) {
         assert(prefixBound <= prob_op);
         // OPERATION write
+        fprintf(stdout, "JJJ3: write\n");
         TestPut(thread, write_opts, read_opts, rand_column_families, rand_keys,
                 value, lock);
       } else if (prob_op < delBound) {
