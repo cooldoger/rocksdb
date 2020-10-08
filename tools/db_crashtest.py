@@ -331,6 +331,7 @@ def finalize_and_sanitize(src_params):
         dest_params["delpercent"] += dest_params["delrangepercent"]
         dest_params["delrangepercent"] = 0
         dest_params["compact_range_one_in"] = 0
+        dest_params["use_txn"] = 0
     return dest_params
 
 def gen_cmd_params(args):
