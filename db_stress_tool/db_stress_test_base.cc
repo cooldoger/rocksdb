@@ -2210,10 +2210,12 @@ void StressTest::Open() {
 #endif  // ROCKSDB_LITE
   }
 
-  if (FLAGS_use_full_merge_v1) {
-    options_.merge_operator = MergeOperators::CreateDeprecatedPutOperator();
-  } else {
-    options_.merge_operator = MergeOperators::CreatePutOperator();
+  if (FLAGS_user_timestamp_size == 0) {
+    if (FLAGS_use_full_merge_v1) {
+      options_.merge_operator = MergeOperators::CreateDeprecatedPutOperator();
+    } else {
+      options_.merge_operator = MergeOperators::CreatePutOperator();
+    }
   }
   if (FLAGS_enable_compaction_filter) {
     options_.compaction_filter_factory =
