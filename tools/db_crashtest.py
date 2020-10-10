@@ -55,7 +55,7 @@ default_params = {
     "compact_range_one_in": 1000000,
     "delpercent": 4,
     "delrangepercent": 1,
-    # "destroy_db_initially": 1,
+    "destroy_db_initially": 0,
     "enable_pipelined_write": lambda: random.randint(0, 1),
     "enable_compaction_filter": lambda: random.choice([0, 0, 0, 1]),
     "expected_values_path": lambda: setup_expected_values_file(),
