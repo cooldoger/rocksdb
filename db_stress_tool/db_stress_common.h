@@ -448,6 +448,9 @@ extern inline bool GetIntVal(std::string big_endian_key, uint64_t* key_p) {
   size_t size_key = big_endian_key.size();
   std::vector<uint64_t> prefixes;
 
+  if (size_key > key_gen_ctx.weights.size() * sizeof(uint64_t)) {
+    fprintf(stdout, "JJJ2: size_key: %zu, weights: %zu, uint64_t: %zu\n", size_key, key_gen_ctx.weights.size(), sizeof(uint64_t));
+  }
   assert(size_key <= key_gen_ctx.weights.size() * sizeof(uint64_t));
 
   std::string little_endian_key;
