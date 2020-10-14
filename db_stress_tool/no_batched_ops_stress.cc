@@ -41,8 +41,7 @@ class NonBatchedOpsStressTest : public StressTest {
       if (thread->shared->HasVerificationFailedYet()) {
         break;
       }
-      int verify_type = 2;
-      if (verify_type == 1) {
+      if (thread->rand.OneIn(3)) {
         // 1/3 chance use iterator to verify this range
         Slice prefix;
         std::string seek_key = Key(start);
@@ -88,26 +87,23 @@ class NonBatchedOpsStressTest : public StressTest {
                           from_db.data(), from_db.length());
           }
         }
-      } else if (verify_type == 2) {
+      } else if (thread->rand.OneIn(2)) {
         // 1/3 chance use Get to verify this range
-        fprintf(stdout, "JJJ2: verify\n");
-        int64_t key = 1481;
-        std::string keystr = Key(key);
-        Slice k = keystr;
-        std::string from_db;
-        Status s = db_->Get(options, column_families_[cf], k, &from_db);
-        fprintf(stdout, "JJJ3: status: %s\n", s.ToString().c_str());
-        fprintf(stdout, "JJJ4: value size: %zu\n", from_db.size());
-
-        size_t batch_size = 1;
-        std::vector<Slice> keys(batch_size);
-        std::vector<PinnableSlice> values(batch_size);
-        std::vector<Status> statuses(batch_size);
-        keys[0] = k;
-        db_->MultiGet(options, column_families_[cf], batch_size, keys.data(),
-                      values.data(), statuses.data());
-        fprintf(stdout, "JJJ5: multiget status: %s\n", statuses[0].ToString().c_str());
-        VerificationAbort(shared, "error", 0, key);
+        for (auto i = start; i < end; i++) {
+          if (thread->shared->HasVerificationFailedYet()) {
+            break;
+          }
+          std::string from_db;
+          std::string keystr = Key(i);
+          Slice k = keystr;
+          Status s = db_->Get(options, column_families_[cf], k, &from_db);
+          VerifyValue(static_cast<int>(cf), i, options, shared, from_db, s,
+                      true);
+          if (from_db.length()) {
+            PrintKeyValue(static_cast<int>(cf), static_cast<uint32_t>(i),
+                          from_db.data(), from_db.length());
+          }
+        }
       } else {
         // 1/3 chance use MultiGet to verify this range
         for (auto i = start; i < end;) {
