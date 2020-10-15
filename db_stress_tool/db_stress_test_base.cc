@@ -578,10 +578,12 @@ void StressTest::OperateDb(ThreadState* thread) {
 
       // Change Options
       if (thread->rand.OneInOpt(FLAGS_set_options_one_in)) {
+        fprintf(stdout, "JJJ9: setoptions\n");
         SetOptions(thread);
       }
 
       if (thread->rand.OneInOpt(FLAGS_set_in_place_one_in)) {
+        fprintf(stdout, "JJJ9: set inplace update\n");
         options_.inplace_update_support ^= options_.inplace_update_support;
       }
 
