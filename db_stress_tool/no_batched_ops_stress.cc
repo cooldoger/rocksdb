@@ -41,8 +41,7 @@ class NonBatchedOpsStressTest : public StressTest {
       if (thread->shared->HasVerificationFailedYet()) {
         break;
       }
-      int verify_type = 1;
-      if (verify_type == 1) {
+      if (thread->rand.OneIn(3)) {
         // 1/3 chance use iterator to verify this range
         Slice prefix;
         std::string seek_key = Key(start);
@@ -88,7 +87,7 @@ class NonBatchedOpsStressTest : public StressTest {
                           from_db.data(), from_db.length());
           }
         }
-      } else if (verify_type == 2) {
+      } else if (thread->rand.OneIn(2)) {
         // 1/3 chance use Get to verify this range
         for (auto i = start; i < end; i++) {
           if (thread->shared->HasVerificationFailedYet()) {
@@ -105,8 +104,7 @@ class NonBatchedOpsStressTest : public StressTest {
                           from_db.data(), from_db.length());
           }
         }
-        fprintf(stdout, "JJJ4: verify done\n");
-      } else if (verify_type == 3) {
+      } else {
         // 1/3 chance use MultiGet to verify this range
         for (auto i = start; i < end;) {
           if (thread->shared->HasVerificationFailedYet()) {
@@ -137,38 +135,8 @@ class NonBatchedOpsStressTest : public StressTest {
           }
 
           i += batch_size;
-          fprintf(stdout, "JJJ0: read key\n");
         }
-
-        fprintf(stdout, "JJJ0: verify done\n");
-      } else {
-        fprintf(stdout, "test\n");
-        ReadOptions op2;
-        op2.timestamp = &ts_slice;
-        std::string val;
-        int64_t ki = 179398;
-        std::string keystr = Key(ki);
-        Slice k = keystr;
-        Status s = db_->Get(op2, column_families_[cf], k, &val);
-        fprintf(stdout, "JJJ5: Get: %s -> %zu\n", k.ToString(true).c_str(), val.size());
-
-        size_t batch_size = 1;
-        ColumnFamilyHandle* column_families[] = {column_families_[cf]};
-        Slice keys[] = {k};
-        PinnableSlice values[] = {PinnableSlice()};
-        Status statuses[] = {Status::OK()};
-        db_->MultiGet(op2, /*num_keys=*/1, &column_families[0], &keys[0],
-                           &values[0], &statuses[0], /*sorted_input=*/false);
-
-//        std::vector<Slice> keys(batch_size);
-//        std::vector<PinnableSlice> values(batch_size);
-//        std::vector<Status> statuses(batch_size);
-//        keys[0] = k;
-//        db_->MultiGet(op2, column_families_[cf], batch_size, keys.data(),
-//                      values.data(), statuses.data());
-        fprintf(stdout, "JJJ5: multiget status: %s\n", statuses[0].ToString().c_str());
       }
-      exit(1);
     }
   }
 

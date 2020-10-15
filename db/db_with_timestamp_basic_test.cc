@@ -13,7 +13,6 @@
 #include "rocksdb/utilities/debug.h"
 #include "table/block_based/block_based_table_reader.h"
 #include "table/block_based/block_builder.h"
-#include "db_stress_tool/db_stress_common.h"
 #if !defined(ROCKSDB_LITE)
 #include "test_util/sync_point.h"
 #endif
@@ -238,107 +237,6 @@ TEST_F(DBBasicTestWithTimestamp, SimpleForwardIterate) {
       ASSERT_EQ(r - std::max(l, start_keys[i]), count);
       l += (kMaxKey / 100);
       r -= (kMaxKey / 100);
-    }
-  }
-  Close();
-}
-
-extern inline std::string MyKey(int64_t val) {
-  uint64_t window = key_gen_ctx.window;
-  size_t levels = key_gen_ctx.weights.size();
-  std::string key;
-
-  for (size_t level = 0; level < levels; ++level) {
-    uint64_t weight = key_gen_ctx.weights[level];
-    uint64_t offset = static_cast<uint64_t>(val) % window;
-    uint64_t mult = static_cast<uint64_t>(val) / window;
-    uint64_t pfx = mult * weight + (offset >= weight ? weight - 1 : offset);
-    key.append(GetStringFromInt(pfx));
-    if (offset < weight) {
-      // Use the bottom 3 bits of offset as the number of trailing 'x's in the
-      // key. If the next key is going to be of the next level, then skip the
-      // trailer as it would break ordering. If the key length is already at max,
-      // skip the trailer.
-      if (offset < weight - 1 && level < levels - 1) {
-        size_t trailer_len = offset & 0x7;
-        key.append(trailer_len, 'x');
-      }
-      break;
-    }
-    val = offset - weight;
-    window -= weight;
-  }
-
-  return key;
-}
-
-TEST_F(DBBasicTestWithTimestamp, MultiGetTT) {
-  Options options = CurrentOptions();
-  options.env = env_;
-  const size_t kTimestampSize = 64;
-  options.comparator = test::ComparatorWithU64Ts();;
-  DestroyAndReopen(options);
-  WriteOptions write_opts;
-  std::string ts_str = GenTimestamp(1);
-  Slice ts = ts_str;
-  write_opts.timestamp = &ts;
-  for (int64_t i = 1; i < 1000000; i++) {
-    std::string key = MyKey(i);
-  }
-  ASSERT_OK(db_->Put(write_opts, "foo", "value"));
-  ASSERT_OK(db_->Put(write_opts, "bar", "value"));
-  ASSERT_OK(db_->Put(write_opts, "fooxxxxxxxxxxxxxxxx", "value"));
-  ASSERT_OK(db_->Put(write_opts, "barxxxxxxxxxxxxxxxx", "value"));
-  ColumnFamilyHandle* cfh = dbfull()->DefaultColumnFamily();
-  ts_str = Timestamp(2, 0);
-  ts = ts_str;
-  ReadOptions read_opts;
-  read_opts.timestamp = &ts;
-  {
-    ColumnFamilyHandle* column_families[] = {cfh, cfh};
-    Slice keys[] = {"foo", "bar"};
-    PinnableSlice values[] = {PinnableSlice(), PinnableSlice()};
-    Status statuses[] = {Status::OK(), Status::OK()};
-    dbfull()->MultiGet(read_opts, /*num_keys=*/2, &column_families[0], &keys[0],
-                       &values[0], &statuses[0], /*sorted_input=*/false);
-    for (const auto& s : statuses) {
-      ASSERT_OK(s);
-    }
-  }
-  {
-    ColumnFamilyHandle* column_families[] = {cfh, cfh, cfh, cfh};
-    // Make user keys longer than configured timestamp size (16 bytes) to
-    // verify RocksDB does not use the trailing bytes 'x' as timestamp.
-    Slice keys[] = {"fooxxxxxxxxxxxxxxxx", "barxxxxxxxxxxxxxxxx", "foo", "bar"};
-    PinnableSlice values[] = {PinnableSlice(), PinnableSlice(), PinnableSlice(),
-                              PinnableSlice()};
-    Status statuses[] = {Status::OK(), Status::OK(), Status::OK(),
-                         Status::OK()};
-    dbfull()->MultiGet(read_opts, /*num_keys=*/4, &column_families[0], &keys[0],
-                       &values[0], &statuses[0], /*sorted_input=*/false);
-    for (const auto& s : statuses) {
-      ASSERT_OK(s);
-    }
-  }
-  ASSERT_OK(Flush());
-  ASSERT_OK(dbfull()->TEST_WaitForCompact());
-
-  Close();
-  Reopen(options);
-  {
-    cfh = dbfull()->DefaultColumnFamily();
-    ColumnFamilyHandle* column_families[] = {cfh, cfh, cfh, cfh};
-    // Make user keys longer than configured timestamp size (16 bytes) to
-    // verify RocksDB does not use the trailing bytes 'x' as timestamp.
-    Slice keys[] = {"fooxxxxxxxxxxxxxxxx", "barxxxxxxxxxxxxxxxx", "foo", "bar"};
-    PinnableSlice values[] = {PinnableSlice(), PinnableSlice(), PinnableSlice(),
-                              PinnableSlice()};
-    Status statuses[] = {Status::OK(), Status::OK(), Status::OK(),
-                         Status::OK()};
-    dbfull()->MultiGet(read_opts, /*num_keys=*/4, &column_families[0], &keys[0],
-                       &values[0], &statuses[0], /*sorted_input=*/false);
-    for (const auto& s : statuses) {
-      ASSERT_OK(s);
     }
   }
   Close();
