@@ -279,7 +279,8 @@ jobs:
           name: "Setup VS"
           command: |
             if [[ "${VS_YEAR}" == "2017" ]]; then
-              powershell .circleci/vs2017_install.ps1
+              choco install -y visualstudio2017community --version 15.9.7.0
+              choco install -y visualcpp-build-tools
             elif [[ "${VS_YEAR}" == "2015" ]]; then
               powershell .circleci/vs2015_install.ps1
             fi
