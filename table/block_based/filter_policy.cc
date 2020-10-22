@@ -550,8 +550,11 @@ class LegacyBloomBitsReader : public FilterBitsReader {
     uint32_t byte_offset;
     LegacyBloomImpl::PrepareHashMayMatch(
         hash, num_lines_, data_, /*out*/ &byte_offset, log2_cache_line_size_);
-    return LegacyBloomImpl::HashMayMatchPrepared(
+    bool ret = LegacyBloomImpl::HashMayMatchPrepared(
         hash, num_probes_, data_ + byte_offset, log2_cache_line_size_);
+
+    fprintf(stdout, "JJJ5: match %d\n", ret);
+    return ret;
   }
 
   virtual void MayMatch(int num_keys, Slice** keys, bool* may_match) override {
@@ -567,6 +570,7 @@ class LegacyBloomBitsReader : public FilterBitsReader {
       may_match[i] = LegacyBloomImpl::HashMayMatchPrepared(
           hashes[i], num_probes_, data_ + byte_offsets[i],
           log2_cache_line_size_);
+      fprintf(stdout, "JJJ4: %d match %d\n", i, may_match[i]);
     }
   }
 

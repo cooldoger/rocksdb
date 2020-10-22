@@ -2046,6 +2046,7 @@ void Version::MultiGet(const ReadOptions& read_options, MultiGetRange* range,
   uint64_t num_sst_read = 0;
 
   while (f != nullptr) {
+    fprintf(stdout, "JJJ01: f: %lld\n", f->fd.GetNumber());
     MultiGetRange file_range = fp.CurrentFileRange();
     bool timer_enabled =
         GetPerfLevel() >= PerfLevel::kEnableTimeExceptForMutex &&
@@ -2096,6 +2097,7 @@ void Version::MultiGet(const ReadOptions& read_options, MultiGetRange* range,
       num_sst_read += get_context.get_context_stats_.num_sst_read;
 
       // report the counters before returning
+      fprintf(stdout, "JJJ02: state: %d\n", get_context.State());
       if (get_context.State() != GetContext::kNotFound &&
           get_context.State() != GetContext::kMerge &&
           db_statistics_ != nullptr) {

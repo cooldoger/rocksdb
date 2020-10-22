@@ -2239,6 +2239,7 @@ void BlockBasedTable::FullFilterKeysMayMatch(
     MultiGetRange* range, const bool no_io,
     const SliceTransform* prefix_extractor,
     BlockCacheLookupContext* lookup_context) const {
+  fprintf(stdout, "JJJ11: has filter: %d, block: %d\n", filter != nullptr, filter != nullptr && filter->IsBlockBased());
   if (filter == nullptr || filter->IsBlockBased()) {
     return;
   }

@@ -41,7 +41,8 @@ class NonBatchedOpsStressTest : public StressTest {
       if (thread->shared->HasVerificationFailedYet()) {
         break;
       }
-      if (thread->rand.OneIn(3)) {
+      int verify_type = 5;
+      if (verify_type == 1) {
         // 1/3 chance use iterator to verify this range
         Slice prefix;
         std::string seek_key = Key(start);
@@ -87,7 +88,7 @@ class NonBatchedOpsStressTest : public StressTest {
                           from_db.data(), from_db.length());
           }
         }
-      } else if (thread->rand.OneIn(2)) {
+      } else if (verify_type == 2) {
         // 1/3 chance use Get to verify this range
         for (auto i = start; i < end; i++) {
           if (thread->shared->HasVerificationFailedYet()) {
@@ -104,7 +105,7 @@ class NonBatchedOpsStressTest : public StressTest {
                           from_db.data(), from_db.length());
           }
         }
-      } else {
+      } else if (verify_type == 3) {
         // 1/3 chance use MultiGet to verify this range
         for (auto i = start; i < end;) {
           if (thread->shared->HasVerificationFailedYet()) {
@@ -136,7 +137,77 @@ class NonBatchedOpsStressTest : public StressTest {
 
           i += batch_size;
         }
+      } else if (verify_type == 4) {
+        fprintf(stdout, "JJJ2: verify\n");
+        int64_t key = 123;
+        std::string keystr = Key(key);
+        Slice k = keystr;
+        std::string from_db;
+        Status s = db_->Get(options, column_families_[cf], k, &from_db);
+        fprintf(stdout, "JJJ3: status: %s\n", s.ToString().c_str());
+        fprintf(stdout, "JJJ4: value size: %zu\n", from_db.size());
+
+        size_t batch_size = 1;
+        std::vector<Slice> keys(batch_size);
+        std::vector<PinnableSlice> values(batch_size);
+        std::vector<Status> statuses(batch_size);
+        keys[0] = k;
+        db_->MultiGet(options, column_families_[cf], batch_size, keys.data(),
+                      values.data(), statuses.data());
+        fprintf(stdout, "JJJ5: multiget status: %s\n", statuses[0].ToString().c_str());
+      } else if (verify_type == 5) {
+        fprintf(stdout, "JJJ1: Adding\n");
+        WriteOptions write_opts;
+        std::string ts2 = GenTimestamp(1);
+        Slice ts_slice2 = ts2;
+        if (FLAGS_user_timestamp_size > 0) {
+          write_opts.timestamp = &ts_slice2;
+        }
+        ColumnFamilyHandle* cfh = column_families_[0];
+        int64_t rand_key = 123;
+//        std::string key_str = Key(rand_key);
+        std::string key_str = "foo";
+        Slice key = key_str;
+
+        char value[100];
+        uint32_t value_base = thread->rand.Next() % shared->UNKNOWN_SENTINEL;
+        size_t sz = GenerateValue(value_base, value, sizeof(value));
+        Slice v(value, sz);
+        std::string vstr = "hi";
+        Slice v2 = vstr;
+
+        Status s = db_->Put(write_opts, key, v2);
+        FlushOptions fo;
+        fo.wait = true;
+        s = db_->Flush(fo);
+        assert(s.ok());
+
+        fprintf(stdout, "JJJ12: read it back\n");
+
+        {
+          fprintf(stdout, "JJJ2: verify\n");
+          int64_t key2 = 123;
+//          std::string keystr = Key(key2);
+          std::string keystr = "foo";
+          Slice k = keystr;
+          std::string from_db;
+          Status s2 = db_->Get(options, column_families_[cf], k, &from_db);
+          fprintf(stdout, "JJJ3: status: %s\n", s.ToString().c_str());
+          fprintf(stdout, "JJJ4: value size: %zu\n", from_db.size());
+
+          size_t batch_size = 1;
+          std::vector<Slice> keys(batch_size);
+          std::vector<PinnableSlice> values(batch_size);
+          std::vector<Status> statuses(batch_size);
+          keys[0] = k;
+          db_->MultiGet(options, column_families_[cf], batch_size, keys.data(),
+                        values.data(), statuses.data());
+          fprintf(stdout, "JJJ5: multiget status: %s\n", statuses[0].ToString().c_str());
+        }
+
+        fprintf(stdout, "JJJ1: done\n");
       }
+      exit(1);
     }
   }
 

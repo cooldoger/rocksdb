@@ -490,6 +490,107 @@ TEST_F(DBBasicTestWithTimestamp, ReseekToNextUserKey) {
   Close();
 }
 
+std::string GenTimestamp(uint64_t timestamp) {
+  std::string ts;
+  PutFixed64(&ts, timestamp);
+  return ts;
+}
+
+TEST_F(DBBasicTestWithTimestamp, Main) {
+  Options options = CurrentOptions();
+  options.env = env_;
+  BlockBasedTableOptions bbto;
+  bbto.filter_policy.reset(NewBloomFilterPolicy(10, false));
+  bbto.cache_index_and_filter_blocks = true;
+  bbto.whole_key_filtering = true;
+  options.table_factory.reset(NewBlockBasedTableFactory(bbto));
+  const size_t kTimestampSize = 64;
+  options.comparator = test::ComparatorWithU64Ts();;
+  DestroyAndReopen(options);
+  WriteOptions write_opts;
+  std::string ts_str = GenTimestamp(1);
+  Slice ts = ts_str;
+  write_opts.timestamp = &ts;
+
+  std::string keystr = "foo";
+  std::string vstr = "hi";
+  Slice k = keystr;
+  Slice v = vstr;
+  ASSERT_OK(db_->Put(write_opts, k, v));
+
+  FlushOptions fo;
+  fo.wait = true;
+  Status s3 = db_->Flush(fo);
+  assert(s3.ok());
+
+  std::string from_db;
+
+  ReadOptions read_opts;
+  read_opts.timestamp = &ts;
+
+  Status s2 = db_->Get(read_opts, k, &from_db);
+
+  std::cout << "read: " << from_db << std::endl;
+
+  size_t batch_size = 1;
+  std::vector<Slice> keys(batch_size);
+  std::vector<PinnableSlice> values(batch_size);
+  std::vector<Status> statuses(batch_size);
+  keys[0] = k;
+  ColumnFamilyHandle* cfh = db_->DefaultColumnFamily();
+  db_->MultiGet(read_opts, cfh, batch_size, keys.data(),
+                values.data(), statuses.data());
+  std::cout << "multiget: " << statuses[0].ToString() << std::endl;
+}
+
+
+TEST_F(DBBasicTestWithTimestamp, Main2) {
+  Options options = CurrentOptions();
+  options.env = env_;
+  BlockBasedTableOptions bbto;
+  bbto.filter_policy.reset(NewBloomFilterPolicy(10, false));
+  bbto.cache_index_and_filter_blocks = true;
+  bbto.whole_key_filtering = true;
+  options.table_factory.reset(NewBlockBasedTableFactory(bbto));
+  const size_t kTimestampSize = 64;
+  //options.comparator = test::ComparatorWithU64Ts();;
+  DestroyAndReopen(options);
+  WriteOptions write_opts;
+//  std::string ts_str = GenTimestamp(1);
+//  Slice ts = ts_str;
+//  write_opts.timestamp = &ts;
+
+  std::string keystr = "foo";
+  std::string vstr = "hi";
+  Slice k = keystr;
+  Slice v = vstr;
+  ASSERT_OK(db_->Put(write_opts, k, v));
+
+  FlushOptions fo;
+  fo.wait = true;
+  Status s3 = db_->Flush(fo);
+  assert(s3.ok());
+
+  std::string from_db;
+
+  ReadOptions read_opts;
+//  read_opts.timestamp = &ts;
+
+  Status s2 = db_->Get(read_opts, k, &from_db);
+
+  std::cout << "read: " << from_db << std::endl;
+
+  size_t batch_size = 1;
+  std::vector<Slice> keys(batch_size);
+  std::vector<PinnableSlice> values(batch_size);
+  std::vector<Status> statuses(batch_size);
+  keys[0] = k;
+  ColumnFamilyHandle* cfh = db_->DefaultColumnFamily();
+  db_->MultiGet(read_opts, cfh, batch_size, keys.data(),
+                values.data(), statuses.data());
+  std::cout << "multiget: " << statuses[0].ToString() << std::endl;
+}
+
 TEST_F(DBBasicTestWithTimestamp, MaxKeysSkipped) {
   Options options = CurrentOptions();
   options.env = env_;
