@@ -246,7 +246,7 @@ void FullFilterBlockReader::MayMatch(
   for (auto iter = filter_range.begin(); iter != filter_range.end(); ++iter) {
     if (!prefix_extractor) {
       fprintf(stdout, "JJJ05: has timestamp %d, size: %lu\n", iter->timestamp != nullptr, (iter->timestamp != nullptr) ? iter->timestamp->size() : 0);
-      keys[num_keys++] = &iter->ukey;
+      keys[num_keys++] = &iter->ukey_without_ts;
     } else if (prefix_extractor->InDomain(iter->ukey)) {
       prefixes.emplace_back(prefix_extractor->Transform(iter->ukey));
       keys[num_keys++] = &prefixes.back();

@@ -108,11 +108,8 @@ class FilterBlockReader {
                             uint64_t block_offset, const bool no_io,
                             BlockCacheLookupContext* lookup_context) {
     for (auto iter = range->begin(); iter != range->end(); ++iter) {
-      Slice ukey = iter->ukey;
+      const Slice ukey = iter->ukey;
       const Slice ikey = iter->ikey;
-      if (iter->timestamp != nullptr) {
-        ukey = StripTimestampFromUserKey(iter->ukey, sizeof(iter->timestamp));
-      }
       GetContext* const get_context = iter->get_context;
       if (!KeyMayMatch(ukey, prefix_extractor, block_offset, no_io, &ikey,
                        get_context, lookup_context)) {

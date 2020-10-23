@@ -41,6 +41,11 @@ class LookupKey {
     return Slice(kstart_, static_cast<size_t>(end_ - kstart_ - 8));
   }
 
+  // Return the user key without timestamp
+  Slice user_key_without_ts() const {
+    return Slice(kstart_, static_cast<size_t>(end_ - kstart_ - 8));
+  }
+
  private:
   // We construct a char array of the form:
   //    klength  varint32               <-- start_

@@ -538,8 +538,9 @@ TEST_F(DBBasicTestWithTimestamp, Main) {
   std::vector<Status> statuses(batch_size);
   keys[0] = k;
   ColumnFamilyHandle* cfh = db_->DefaultColumnFamily();
+  std::vector<std::string> timestamps_array(batch_size);
   db_->MultiGet(read_opts, cfh, batch_size, keys.data(),
-                values.data(), statuses.data());
+                values.data(),timestamps_array.data(), statuses.data());
   std::cout << "multiget: " << statuses[0].ToString() << std::endl;
 }
 
