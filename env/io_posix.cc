@@ -567,9 +567,9 @@ IOStatus PosixRandomAccessFile::Read(uint64_t offset, size_t n,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
   if (use_direct_io()) {
-    assert(IsSectorAligned(offset, GetRequiredBufferAlignment()));
-    assert(IsSectorAligned(n, GetRequiredBufferAlignment()));
-    assert(IsSectorAligned(scratch, GetRequiredBufferAlignment()));
+//    assert(IsSectorAligned(offset, GetRequiredBufferAlignment()));
+//    assert(IsSectorAligned(n, GetRequiredBufferAlignment()));
+//    assert(IsSectorAligned(scratch, GetRequiredBufferAlignment()));
   }
   IOStatus s;
   ssize_t r = -1;

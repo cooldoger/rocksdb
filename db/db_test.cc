@@ -1916,6 +1916,7 @@ TEST_F(DBTest, DeletionMarkers1) {
 TEST_F(DBTest, OpenTest) {
   std::cout << "hello" << std::endl;
   std::string file_path = "/data/universal/laser/laser.laser_ppf_node_test_v1/1/2020-11-17_1605602328/PURPOSE_POLICY";
+//  std::string file_path = "/Users/zjay/ws/tmp/PURPOSE_POLICY2";
   Status status = env_->FileExists(file_path);
   std::cout << "exist: " << status.ToString() << std::endl;
   uint64_t fileSize;
@@ -1925,9 +1926,11 @@ TEST_F(DBTest, OpenTest) {
 
   std::cout << "file size: " << fileSize << " status: " << status.ToString() << std::endl;
 
+  auto envOptions = EnvOptions();
+  envOptions.use_direct_reads = true;
   std::unique_ptr<rocksdb::RandomAccessFile> readFile;
   status = env_->NewRandomAccessFile(
-      file_path, &readFile, EnvOptions());
+      file_path, &readFile, envOptions);
 
   auto readFileWrapper = readFile.get();
 
