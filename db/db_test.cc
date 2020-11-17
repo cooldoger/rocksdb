@@ -1913,6 +1913,10 @@ TEST_F(DBTest, DeletionMarkers1) {
   ASSERT_EQ(AllEntriesFor("foo", 1), "[ v2 ]");
 }
 
+TEST_F(DBTest, OpenTest) {
+  std::cout << "hello" << std::endl;
+}
+
 TEST_F(DBTest, DeletionMarkers2) {
   Options options = CurrentOptions();
   CreateAndReopenWithCF({"pikachu"}, options);
