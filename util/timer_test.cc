@@ -21,6 +21,62 @@ class TimerTest : public testing::Test {
   const int kUsPerSec = 1000000;
 };
 
+class AlertComparator : public rocksdb::Comparator {
+ public:
+  int Compare(const rocksdb::Slice& a, const rocksdb::Slice& b)
+  const override {
+    std::string aStr = a.ToString();
+    std::string bStr = b.ToString();
+    try {
+      return std::stoll(aStr) - std::stoll(bStr);
+    } catch (std::exception& ex) {
+      return 0;
+    }
+  }
+
+  const char* Name() const override {
+    return "AlertManagerComparator";
+  }
+  void FindShortestSeparator(
+      std::string* /*start*/,
+      const rocksdb::Slice& /*limit*/) const override {}
+  void FindShortSuccessor(std::string* /*key*/) const override {}
+};
+
+TEST_F(TimerTest, Example) {
+  std::string a = "2276567117";
+  std::string b = "1276567116";
+  std::string c = "128911478";
+
+  AlertComparator comparator_;
+  std::cout << comparator_.Compare(a, b) << std::endl; // positive
+  std::cout << comparator_.Compare(b, c) << std::endl; // positive
+  std::cout << comparator_.Compare(a, c) << std::endl; // negative overflow
+}
+
+TEST_F(TimerTest, TT) {
+  std::string kDBPath = "/Users/zjay/ws/tmp/tt";
+  Options options;
+  DB* db;
+  AlertComparator comparator_;
+  options.compression = kSnappyCompression;
+  options.comparator = &comparator_;
+  options.num_levels = 3;
+  options.level0_file_num_compaction_trigger = 4;
+  options.target_file_size_base = 64 * 1024 * 1024;
+  options.write_buffer_size = 256 * 1024 * 1024;
+
+  Status s = DB::Open(options, kDBPath, &db);
+  std::cout << s.ToString() << std::endl;
+
+
+  auto db_full = static_cast_with_check<DBImpl>(db);
+
+  ASSERT_OK(db_full->TEST_WaitForCompact());
+
+  std::cout << "end" << std::endl;
+}
+
 TEST_F(TimerTest, SingleScheduleOnce) {
   const int kInitDelayUs = 1 * kUsPerSec;
   Timer timer(mock_env_.get());
