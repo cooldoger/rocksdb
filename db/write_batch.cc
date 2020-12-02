@@ -1914,6 +1914,7 @@ class MemTableInserter : public WriteBatch::Handler {
       // unprepared_batch_ should be false because it is false by default, and
       // gets reset to false in MarkEndPrepare.
       assert(!unprepared_batch_);
+      fprintf(stdout, "JJJ3: set unprepred_batch: %d -> %d\n", unprepared_batch_, unprepare);
       unprepared_batch_ = unprepare;
 
       if (has_valid_writes_ != nullptr) {

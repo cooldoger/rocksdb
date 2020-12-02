@@ -33,8 +33,7 @@ class WriteUnpreparedTransactionTest
 
 INSTANTIATE_TEST_CASE_P(
     WriteUnpreparedTransactionTest, WriteUnpreparedTransactionTest,
-    ::testing::Values(std::make_tuple(false, false, WRITE_UNPREPARED),
-                      std::make_tuple(false, true, WRITE_UNPREPARED)));
+    ::testing::Values(std::make_tuple(false, false, WRITE_UNPREPARED)));
 
 enum StressAction { NO_SNAPSHOT, RO_SNAPSHOT, REFRESH_SNAPSHOT };
 class WriteUnpreparedStressTest : public WriteUnpreparedTransactionTestBase,
@@ -312,6 +311,55 @@ TEST_P(WriteUnpreparedStressTest, ReadYourOwnWriteStress) {
 }
 #endif  // ROCKSDB_VALGRIND_RUN
 
+TEST_P(WriteUnpreparedTransactionTest, TT) {
+  std::cout << "HI" << std::endl;
+  WriteOptions write_options;
+  write_options.disableWAL = false;
+  TransactionOptions txn_options;
+  std::vector<Transaction*> prepared_trans;
+  WriteUnpreparedTxnDB* wup_db;
+  options.disable_auto_compactions = true;
+
+//  for (int i = 0; i < 2; i++) {
+//    ASSERT_OK(db->Put(write_options, "k" + ToString(i),
+//                      "before value" + ToString(i)));
+//  }
+
+  txn_options.write_batch_flush_threshold = 2;
+
+  prepared_trans.clear();
+  ReOpen();
+  wup_db = dynamic_cast<WriteUnpreparedTxnDB*>(db);
+
+  Transaction* txn = db->BeginTransaction(write_options, txn_options);
+  txn->SetName("xid");
+  std::cout << db->GetName() << std::endl;
+
+  ASSERT_OK(txn->Put("k" + ToString(0), "value" + ToString(0)));
+
+//  txn->Prepare();
+//  txn->Commit();
+  delete txn;
+
+  ASSERT_OK(wup_db->db_impl_->FlushWAL(true));
+  wup_db->TEST_Crash();
+  std::cout << "JJJ9: " << wup_db->db_impl_->MinLogNumberToKeep() << std::endl;
+  ReOpenNoDelete();
+
+  Transaction* txn2 = db->BeginTransaction(write_options, txn_options);
+  txn2->SetName("xid2");
+  txn2->Put("k" + ToString(0), "value" + ToString(0));
+  txn2->Prepare();
+  delete txn2;
+
+  wup_db = dynamic_cast<WriteUnpreparedTxnDB*>(db);
+
+  ASSERT_OK(wup_db->db_impl_->FlushWAL(true));
+  wup_db->TEST_Crash();
+  std::cout << "JJJ9: " << wup_db->db_impl_->MinLogNumberToKeep() << std::endl;
+  ReOpenNoDelete();
+}
+
 // This tests how write unprepared behaves during recovery when the DB crashes
 // after a transaction has either been unprepared or prepared, and tests if
 // the changes are correctly applied for prepared transactions if we decide to
@@ -329,8 +377,8 @@ TEST_P(WriteUnpreparedTransactionTest, RecoveryTest) {
   // batch_size of 1 causes writes to DB for every marker.
   for (size_t batch_size : {1, 1000000}) {
     txn_options.write_batch_flush_threshold = batch_size;
-    for (bool empty : {true, false}) {
-      for (Action a : {UNPREPARED, ROLLBACK, COMMIT}) {
+    for (bool empty : {false}) {
+      for (Action a : {ROLLBACK, COMMIT}) {
         for (int num_batches = 1; num_batches < 10; num_batches++) {
           // Reset database.
           prepared_trans.clear();
@@ -385,24 +433,24 @@ TEST_P(WriteUnpreparedTransactionTest, RecoveryTest) {
             delete prepared_trans[0];
           }
 
-          Iterator* iter = db->NewIterator(ReadOptions());
-          iter->SeekToFirst();
-          // Check that DB has before values.
-          if (!empty || a == COMMIT) {
-            for (int i = 0; i < num_batches; i++) {
-              ASSERT_TRUE(iter->Valid());
-              ASSERT_EQ(iter->key().ToString(), "k" + ToString(i));
-              if (a == COMMIT) {
-                ASSERT_EQ(iter->value().ToString(), "value" + ToString(i));
-              } else {
-                ASSERT_EQ(iter->value().ToString(),
-                          "before value" + ToString(i));
-              }
-              iter->Next();
-            }
-          }
-          ASSERT_FALSE(iter->Valid());
-          delete iter;
+//          Iterator* iter = db->NewIterator(ReadOptions());
+//          iter->SeekToFirst();
+//          // Check that DB has before values.
+//          if (!empty || a == COMMIT) {
+//            for (int i = 0; i < num_batches; i++) {
+//              ASSERT_TRUE(iter->Valid());
+//              ASSERT_EQ(iter->key().ToString(), "k" + ToString(i));
+//              if (a == COMMIT) {
+//                ASSERT_EQ(iter->value().ToString(), "value" + ToString(i));
+//              } else {
+//                ASSERT_EQ(iter->value().ToString(),
+//                          "before value" + ToString(i));
+//              }
+//              iter->Next();
+//            }
+//          }
+//          ASSERT_FALSE(iter->Valid());
+//          delete iter;
         }
       }
     }

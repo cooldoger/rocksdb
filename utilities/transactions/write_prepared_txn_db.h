@@ -502,6 +502,7 @@ class WritePreparedTxnDB : public PessimisticTransactionDB {
   friend class WriteUnpreparedTxn;
   friend class WriteUnpreparedTxnDB;
   friend class WriteUnpreparedTransactionTest_RecoveryTest_Test;
+  friend class WriteUnpreparedTransactionTest_TT_Test;
 
   void Init(const TransactionDBOptions& /* unused */);
 

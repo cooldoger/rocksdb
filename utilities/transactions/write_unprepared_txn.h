@@ -209,6 +209,7 @@ class WriteUnpreparedTxn : public WritePreparedTxn {
   friend class WriteUnpreparedTransactionTest_ReadYourOwnWrite_Test;
   friend class WriteUnpreparedTransactionTest_RecoveryTest_Test;
   friend class WriteUnpreparedTransactionTest_UnpreparedBatch_Test;
+  friend class WriteUnpreparedTransactionTest_TT_Test;
   friend class WriteUnpreparedTxnDB;
 
   const std::map<SequenceNumber, size_t>& GetUnpreparedSequenceNumbers();

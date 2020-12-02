@@ -794,6 +794,10 @@ class DBImpl : public DB {
                                   WriteBatch* batch, SequenceNumber seq,
                                   size_t batch_cnt, bool unprepared)
         : name_(name), unprepared_(unprepared) {
+      if (unprepared == 0) {
+        fprintf(stdout, "JJJ2: unprepared == false\n");
+      }
+      fprintf(stdout, "JJJ2: unprepared init value: %d\n", unprepared);
       batches_[seq] = {log, batch, batch_cnt};
     }
 
@@ -809,6 +813,7 @@ class DBImpl : public DB {
       batches_[seq] = {log_number, batch, batch_cnt};
       // Prior state must be unprepared, since the prepare batch must be the
       // last batch.
+      fprintf(stdout, "JJJ1: set unprepared_ to %d\n", unprepared);
       assert(unprepared_);
       unprepared_ = unprepared;
     }
@@ -838,6 +843,9 @@ class DBImpl : public DB {
     //
     // If the transaction is prepared, then the last call to
     // InsertRecoveredTransaction will have unprepared_batch = false.
+    if (name.compare("xid288") == 0) {
+      fprintf(stdout, "JJJ4: found 288\n");
+    }
     auto rtxn = recovered_transactions_.find(name);
     if (rtxn == recovered_transactions_.end()) {
       recovered_transactions_[name] = new RecoveredTransaction(
