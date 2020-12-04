@@ -745,6 +745,7 @@ Status InstallMemtableAtomicFlushResults(
   }
 
   WalNumber min_wal_number_to_keep = 0;
+  fprintf(stdout, "JJJ3: call \n");
   if (vset->db_options()->allow_2pc) {
     min_wal_number_to_keep = PrecomputeMinLogNumberToKeep2PC(
         vset, cfds, edit_lists, mems_list, prep_tracker);

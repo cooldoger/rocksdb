@@ -707,6 +707,7 @@ TEST_P(DBAtomicFlushTest, ManualFlushUnder2PC) {
   ASSERT_OK(TryReopenWithColumnFamilies(cfs, options));
   DBImpl* db_impl = reinterpret_cast<DBImpl*>(db_);
   ASSERT_TRUE(db_impl->allow_2pc());
+  std::cout << db_impl->MinLogNumberToKeep() << std::endl;
   ASSERT_NE(db_impl->MinLogNumberToKeep(), 0);
 }
 #endif  // ROCKSDB_LITE
@@ -1108,7 +1109,7 @@ TEST_P(DBAtomicFlushTest, RollbackAfterFailToInstallResults) {
 INSTANTIATE_TEST_CASE_P(DBFlushDirectIOTest, DBFlushDirectIOTest,
                         testing::Bool());
 
-INSTANTIATE_TEST_CASE_P(DBAtomicFlushTest, DBAtomicFlushTest, testing::Bool());
+INSTANTIATE_TEST_CASE_P(DBAtomicFlushTest, DBAtomicFlushTest, testing::Values(false));
 
 }  // namespace ROCKSDB_NAMESPACE
 

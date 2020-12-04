@@ -353,6 +353,7 @@ class VersionEdit {
   uint32_t GetMaxColumnFamily() const { return max_column_family_; }
 
   void SetMinLogNumberToKeep(uint64_t num) {
+    fprintf(stdout, "JJJ3: set min num: %lld\n", num);
     has_min_log_number_to_keep_ = true;
     min_log_number_to_keep_ = num;
   }

@@ -4085,6 +4085,7 @@ Status VersionSet::ProcessManifestWrites(
       // This is fine because everything inside of this block is serialized --
       // only one thread can be here at the same time
       // create new manifest file
+      fprintf(stdout, "JJJ5: creating manifest %lld\n", pending_manifest_file_number_);
       ROCKS_LOG_INFO(db_options_->info_log, "Creating manifest %" PRIu64 "\n",
                      pending_manifest_file_number_);
       std::string descriptor_fname =
@@ -4767,6 +4768,7 @@ Status VersionSet::Recover(
 
   if (s.ok()) {
     manifest_file_size_ = current_manifest_file_size;
+    fprintf(stdout, "JJJ7: min log: %lld\n", min_log_number_to_keep_2pc());
     ROCKS_LOG_INFO(
         db_options_->info_log,
         "Recovered from manifest file:%s succeeded,"

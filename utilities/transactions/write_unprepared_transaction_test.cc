@@ -332,32 +332,53 @@ TEST_P(WriteUnpreparedTransactionTest, TT) {
   wup_db = dynamic_cast<WriteUnpreparedTxnDB*>(db);
 
   Transaction* txn = db->BeginTransaction(write_options, txn_options);
+  Transaction* txn2 = db->BeginTransaction(write_options, txn_options);
+
   txn->SetName("xid");
+  txn2->SetName("xid2");
+
   std::cout << db->GetName() << std::endl;
 
   ASSERT_OK(txn->Put("k" + ToString(0), "value" + ToString(0)));
+  ASSERT_OK(txn2->Put("k" + ToString(1), "value" + ToString(1)));
 
-//  txn->Prepare();
-//  txn->Commit();
+  txn->Prepare();
+  txn2->Prepare();
+  txn->Commit();
+//  txn2->Commit();
   delete txn;
+  delete txn2;
 
+//  ASSERT_OK(wup_db->db_impl_->FlushWAL(true));
+  ASSERT_OK(wup_db->Flush(FlushOptions()));
   ASSERT_OK(wup_db->db_impl_->FlushWAL(true));
   wup_db->TEST_Crash();
-  std::cout << "JJJ9: " << wup_db->db_impl_->MinLogNumberToKeep() << std::endl;
+  std::cout << "===7: " << wup_db->db_impl_->MinLogNumberToKeep() << std::endl;
   ReOpenNoDelete();
-
-  Transaction* txn2 = db->BeginTransaction(write_options, txn_options);
-  txn2->SetName("xid2");
-  txn2->Put("k" + ToString(0), "value" + ToString(0));
-  txn2->Prepare();
-  delete txn2;
 
   wup_db = dynamic_cast<WriteUnpreparedTxnDB*>(db);
 
-  ASSERT_OK(wup_db->db_impl_->FlushWAL(true));
+  db->GetAllPreparedTransactions(&prepared_trans);
+  prepared_trans[0]->Commit();
+
+//  Transaction* txn3 = db->BeginTransaction(write_options, txn_options);
+//  txn3->SetName("xid3");
+//  ASSERT_OK(txn3->Put("k" + ToString(2), "value" + ToString(2)));
+//  txn3->Prepare();
+//  txn3->Commit();
+//  delete txn3;
+
+//  ASSERT_OK(wup_db->Flush(FlushOptions()));
+//  ASSERT_OK(wup_db->db_impl_->FlushWAL(true));
+//  db->Put(write_options, "k" + ToString(2), "bar");
+
   wup_db->TEST_Crash();
-  std::cout << "JJJ9: " << wup_db->db_impl_->MinLogNumberToKeep() << std::endl;
+  std::cout << "===8: " << wup_db->db_impl_->MinLogNumberToKeep() << std::endl;
   ReOpenNoDelete();
+
+  wup_db = dynamic_cast<WriteUnpreparedTxnDB*>(db);
+  std::cout << "===9: " << wup_db->db_impl_->MinLogNumberToKeep() << std::endl;
+  std::cout << "end" << std::endl;
 }
 
 // This tests how write unprepared behaves during recovery when the DB crashes
