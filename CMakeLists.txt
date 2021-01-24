@@ -1355,3 +1355,22 @@ option(WITH_EXAMPLES "build with examples" OFF)
 if(WITH_EXAMPLES)
   add_subdirectory(examples)
 endif()
+
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Enable benchmark self-testing?")
+
+# Fix dependency download
+# https://github.com/google/benchmark/issues/564
+#
+set(BENCHMARK_DOWNLOAD_DEPENDENCIES ON CACHE BOOL "Download dependencies?")
+
+# Setup compiler flags, c++11 is required
+#
+#if((CMAKE_CXX_COMPILER_ID MATCHES GNU) OR (CMAKE_CXX_COMPILER_ID MATCHES Clang))
+#  set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} -std=c++11")
+#  set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -g3")
+#  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+#endif()
+
+include(ConfigGBench)
+
+add_subdirectory(${PROJECT_SOURCE_DIR}/bench/)
