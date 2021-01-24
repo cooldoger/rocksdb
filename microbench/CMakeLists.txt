@@ -2,7 +2,7 @@ find_package(Threads REQUIRED)
 
 #~~~~~~~~~~~~~~~~
 
-file(GLOB_RECURSE ALL_BENCH_CPP *.cpp)
+file(GLOB_RECURSE ALL_BENCH_CPP *.cc)
 
 foreach(ONE_BENCH_CPP ${ALL_BENCH_CPP})
 

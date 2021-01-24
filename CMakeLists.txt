@@ -1373,4 +1373,4 @@ set(BENCHMARK_DOWNLOAD_DEPENDENCIES ON CACHE BOOL "Download dependencies?")
 
 include(ConfigGBench)
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/bench/)
+add_subdirectory(${PROJECT_SOURCE_DIR}/microbench/)
