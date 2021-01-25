@@ -48,21 +48,100 @@ struct KeyMaker {
   }
 };
 
-static void BM_FilterBuild(benchmark::State &state) {
-  // setup data
-  KeyMaker km(100);
-  std::unique_ptr<const char[]> owner;
-  int j = 0;
-  for (auto _ : state) {
-    j++;
-    for (uint32_t i = 0; i < 10000; i++) {
-      builder->AddKey(km.Get(1, i));
-      
+// arguments:
+// 0. filter mode
+// 1. filter config bits_per_key
+// 2. average data key length
+// 3. data entry number
+static void CustomArguments(benchmark::internal::Benchmark* b) {
+  for (int filterMode : {BloomFilterPolicy::kLegacyBloom, BloomFilterPolicy::kFastLocalBloom, BloomFilterPolicy::kStandard128Ribbon}) {
+//    for (int bits_per_key : {4, 10, 20, 30}) {
+    for (int bits_per_key : {10, 20}) {
+      for (int key_len_avg : {10, 100}) {
+        for (int64_t entry_num : {1<<10, 1<<20}) {
+          b->Args({filterMode, bits_per_key, key_len_avg, entry_num});
+        }
+      }
     }
-    builder->Finish(&owner);
   }
 }
-BENCHMARK(BM_FilterBuild);
+
+static void FilterBuild(benchmark::State &state) {
+  // setup data
+  auto filter = new BloomFilterPolicy(state.range(1), static_cast<BloomFilterPolicy::Mode>(state.range(0)));
+  auto tester = new mock::MockBlockBasedTableTester(filter);
+  KeyMaker km(state.range(2));
+  std::unique_ptr<const char[]> owner;
+  const int64_t kEntryNum = state.range(3);
+  auto rnd = Random32(12345);
+  uint32_t filter_num = rnd.Next();
+  // run the test
+  for (auto _ : state) {
+    std::unique_ptr<FilterBitsBuilder> builder(tester->GetBuilder());
+    for (uint32_t i = 0; i < kEntryNum; i++) {
+      builder->AddKey(km.Get(filter_num, i));
+    }
+    auto ret = builder->Finish(&owner);
+    state.counters["size"] = ret.size();
+  }
+}
+BENCHMARK(FilterBuild)->Apply(CustomArguments);
+
+static void FilterQueryPositive(benchmark::State &state) {
+  // setup data
+  auto filter = new BloomFilterPolicy(state.range(1), static_cast<BloomFilterPolicy::Mode>(state.range(0)));
+  auto tester = new mock::MockBlockBasedTableTester(filter);
+  KeyMaker km(state.range(2));
+  std::unique_ptr<const char[]> owner;
+  const int64_t kEntryNum = state.range(3);
+  auto rnd = Random32(12345);
+  uint32_t filter_num = rnd.Next();
+  std::unique_ptr<FilterBitsBuilder> builder(tester->GetBuilder());
+  for (uint32_t i = 0; i < kEntryNum; i++) {
+    builder->AddKey(km.Get(filter_num, i));
+  }
+  auto data = builder->Finish(&owner);
+  auto reader = filter->GetFilterBitsReader(data);
+
+  // run test
+  uint32_t i = 0;
+  for (auto _ : state) {
+    i++;
+    i = i % kEntryNum;
+    reader->MayMatch(km.Get(filter_num, i));
+  }
+}
+BENCHMARK(FilterQueryPositive)->Apply(CustomArguments);
+
+static void FilterQueryNegative(benchmark::State &state) {
+  // setup data
+  auto filter = new BloomFilterPolicy(state.range(1), static_cast<BloomFilterPolicy::Mode>(state.range(0)));
+  auto tester = new mock::MockBlockBasedTableTester(filter);
+  KeyMaker km(state.range(2));
+  std::unique_ptr<const char[]> owner;
+  const int64_t kEntryNum = state.range(3);
+  auto rnd = Random32(12345);
+  uint32_t filter_num = rnd.Next();
+  std::unique_ptr<FilterBitsBuilder> builder(tester->GetBuilder());
+  for (uint32_t i = 0; i < kEntryNum; i++) {
+    builder->AddKey(km.Get(filter_num, i));
+  }
+  auto data = builder->Finish(&owner);
+  auto reader = filter->GetFilterBitsReader(data);
+
+  // run test
+  uint32_t i = 0;
+  uint64_t fp_cnt = 0;
+  for (auto _ : state) {
+    i++;
+    auto result = reader->MayMatch(km.Get(filter_num + 1, i));
+    if (result) {
+      fp_cnt++;
+    }
+  }
+  state.counters["FP %"] = benchmark::Counter(fp_cnt * 100, benchmark::Counter::kAvgIterations);
+}
+BENCHMARK(FilterQueryNegative)->Apply(CustomArguments);
 
 }
 
