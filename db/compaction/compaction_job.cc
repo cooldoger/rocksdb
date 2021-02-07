@@ -585,6 +585,7 @@ Status CompactionJob::Run() {
 
   const size_t num_threads = compact_->sub_compact_states.size();
   assert(num_threads > 0);
+  assert(num_threads == 1); // sub-compaction is not implemented yet
   const uint64_t start_micros = env_->NowMicros();
 
   // Launch a thread for each of subcompactions 1...num_threads-1
@@ -595,9 +596,24 @@ Status CompactionJob::Run() {
                              &compact_->sub_compact_states[i]);
   }
 
-  // Always schedule the first subcompaction (whether or not there are also
-  // others) in the current thread to be efficient with resources
-  ProcessKeyValueCompaction(&compact_->sub_compact_states[0]);
+  if (db_options_.compaction_service) {
+    CompactionParam param;
+    CompactionResult result;
+    param.output_level = compact_->compaction->output_level();
+//    param.column_family_name
+    const std::vector<CompactionInputFiles>& inputs = *(compact_->compaction->inputs());
+
+    for (auto input_level : inputs) {
+      for (auto input : input_level.files) {
+        param.input_files.emplace_back(MakeTableFileName(input->fd.GetNumber()));
+      }
+    }
+    Status s = db_options_.compaction_service->Run(param, &result);
+  } else {
+    // Always schedule the first subcompaction (whether or not there are also
+    // others) in the current thread to be efficient with resources
+    ProcessKeyValueCompaction(&compact_->sub_compact_states[0]);
+  }
 
   // Wait for all other threads (if there are any) to finish execution
   for (auto& thread : thread_pool) {

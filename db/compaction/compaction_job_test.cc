@@ -94,7 +94,13 @@ class RemoteCompactionTest : public testing::Test {
 
 class MyCompactionService : public CompactionService {
   Status Run(const CompactionParam& param, CompactionResult* result) override {
-    std::cout << "Run compaction " << std::endl;
+    std::cout << "Run compaction: " << std::endl;
+    for (auto input : param.input_files) {
+      std::cout << input << ", ";
+    }
+    std::cout << std::endl;
+
+    std::cout << param.output_level << std::endl;
     return Status::OK();
   }
 };
@@ -115,6 +121,7 @@ TEST_F(RemoteCompactionTest, Primary) {
   s = DB::Open(options, kDBPathPrimary, &db);
   ASSERT_OK(s);
 
+  // Add L0 files with overlap
   for (int i = 0; i < 3; i++) {
     s = db->Put(WriteOptions(), "Key" + std::to_string(i + 0), "val");
     ASSERT_OK(s);
