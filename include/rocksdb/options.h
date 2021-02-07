@@ -57,6 +57,28 @@ class FileSystem;
 
 struct Options;
 struct DbPath;
+struct CompactionOptions;
+
+struct CompactionParam {
+  std::string column_family_name;
+
+  std::vector<SequenceNumber> snapshots;
+
+  std::vector<std::string> input_files;
+
+  int output_level;
+};
+
+struct CompactionResult {
+  std::vector<std::string> output_files;
+};
+
+class CompactionService {
+ public:
+  virtual Status Run(const CompactionParam& param, CompactionResult* result) = 0;
+
+  virtual ~CompactionService() {}
+};
 
 struct ColumnFamilyOptions : public AdvancedColumnFamilyOptions {
   // The function recovers options to a previous version. Only 4.6 or later
@@ -1192,6 +1214,8 @@ struct DBOptions {
   //
   // Default: hostname
   std::string db_host_id = kHostnameForDbHostId;
+
+  std::shared_ptr<CompactionService> compaction_service = nullptr;
 };
 
 // Options to control the behavior of a database (passed to DB::Open)
@@ -1537,10 +1561,12 @@ struct CompactionOptions {
   // If > 0, it will replace the option in the DBOptions for this compaction.
   uint32_t max_subcompactions;
 
+  bool is_secondary;
+
   CompactionOptions()
       : compression(kSnappyCompression),
         output_file_size_limit(std::numeric_limits<uint64_t>::max()),
-        max_subcompactions(0) {}
+        max_subcompactions(0), is_secondary(false) {}
 };
 
 // For level based compaction, we can configure if we want to skip/force

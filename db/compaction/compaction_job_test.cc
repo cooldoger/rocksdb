@@ -67,6 +67,75 @@ void VerifyInitializationOfCompactionJobStats(
 
 }  // namespace
 
+class RemoteCompactionTest : public testing::Test {
+ private:
+  Env* env_;
+  std::shared_ptr<Env> env_guard_;
+
+ protected:
+  const std::string kDBPathPrimary = "/tmp/comp/primary";
+  const std::string kDBPathCompactor = "/tmp/comp/compactor";
+
+ public:
+  RemoteCompactionTest() {
+    const char* test_env_uri = getenv("TEST_ENV_URI");
+    if (test_env_uri) {
+      Status s = Env::LoadEnv(test_env_uri, &env_, &env_guard_);
+      if (!s.ok()) {
+        std::cout << "Failed to load env: " << s.ToString() << std::endl;
+      }
+    } else {
+      env_ = Env::Default();
+    }
+  }
+
+  Env* env() { return env_; }
+};
+
+class MyCompactionService : public CompactionService {
+  Status Run(const CompactionParam& param, CompactionResult* result) override {
+    std::cout << "Run compaction " << std::endl;
+    return Status::OK();
+  }
+};
+
+TEST_F(RemoteCompactionTest, Primary) {
+  std::cout << "hello" << std::endl;
+
+  Options options;
+  options.env = env();
+  options.create_if_missing = true;
+  Status s;
+  s = DestroyDB(kDBPathPrimary, options);
+  ASSERT_OK(s);
+
+  options.compaction_service = std::make_shared<MyCompactionService>();
+
+  DB* db;
+  s = DB::Open(options, kDBPathPrimary, &db);
+  ASSERT_OK(s);
+
+  for (int i = 0; i < 3; i++) {
+    s = db->Put(WriteOptions(), "Key" + std::to_string(i + 0), "val");
+    ASSERT_OK(s);
+    s = db->Put(WriteOptions(), "Key" + std::to_string(i + 5), "val");
+    ASSERT_OK(s);
+    db->Flush(FlushOptions());
+  }
+
+  std::vector<std::string> files_to_compact;
+  std::vector<LiveFileMetaData> files_meta;
+  db->GetLiveFilesMetaData(&files_meta);
+  for (auto file : files_meta) {
+    files_to_compact.push_back(file.name);
+    std::cout << file.name << std::endl;
+  }
+
+  CompactionOptions compaction_options;
+  int output_level = 1; // pre-define the output level
+  db->CompactFiles(compaction_options, files_to_compact, output_level);
+}
+
 class CompactionJobTestBase : public testing::Test {
  protected:
   CompactionJobTestBase(std::string dbname, const Comparator* ucmp,
@@ -1207,8 +1276,17 @@ TEST_F(CompactionJobTimestampTest, SomeKeysExpired) {
 
 }  // namespace ROCKSDB_NAMESPACE
 
+#ifdef ROCKSDB_UNITTESTS_WITH_CUSTOM_OBJECTS_FROM_STATIC_LIBS
+extern "C" {
+void RegisterCustomObjects(int argc, char** argv);
+}
+#else
+void RegisterCustomObjects(int /*argc*/, char** /*argv*/) {}
+#endif  // !ROCKSDB_UNITTESTS_WITH_CUSTOM_OBJECTS_FROM_STATIC_LIBS
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
+  RegisterCustomObjects(argc, argv);
   return RUN_ALL_TESTS();
 }
 
