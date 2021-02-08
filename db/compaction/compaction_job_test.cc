@@ -106,8 +106,6 @@ class MyCompactionService : public CompactionService {
 };
 
 TEST_F(RemoteCompactionTest, Primary) {
-  std::cout << "hello" << std::endl;
-
   Options options;
   options.env = env();
   options.create_if_missing = true;
@@ -141,6 +139,39 @@ TEST_F(RemoteCompactionTest, Primary) {
   CompactionOptions compaction_options;
   int output_level = 1; // pre-define the output level
   db->CompactFiles(compaction_options, files_to_compact, output_level);
+}
+
+TEST_F(RemoteCompactionTest, CompactionWorker) {
+  Options options;
+  options.env = env();
+  options.max_open_files = -1;
+
+  DB* db;
+  Status s = DB::OpenAsSecondary(options, kDBPathPrimary, kDBPathCompactor, &db);
+  ASSERT_OK(s);
+
+  for (int i = 0; i < 10; i++) {
+    std::string result;
+    s = db->Get(ReadOptions(), "Key" + std::to_string(i), &result);
+    std::cout << i << " : " << (s.ok() ? result : "not found") << std::endl;
+  }
+
+  int output_level;
+//  std::cin >> output_level;
+  output_level = 1;
+  std::cout << "output level: " << output_level << std::endl;
+
+  std::vector<std::string> files_to_compact;
+  files_to_compact.emplace_back("/000008.sst");
+  files_to_compact.emplace_back("/000010.sst");
+  files_to_compact.emplace_back("/000012.sst");
+
+  CompactionOptions compaction_options;
+  compaction_options.is_compaction_worker = true;
+  compaction_options.output_directory = kDBPathCompactor;
+  s = db->CompactFiles(compaction_options, files_to_compact, output_level);
+  ASSERT_OK(s);
+  delete db;
 }
 
 class CompactionJobTestBase : public testing::Test {

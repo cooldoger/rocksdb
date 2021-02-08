@@ -662,6 +662,78 @@ Status DB::OpenAsSecondary(
   }
   return s;
 }
+
+Status DBImplSecondary::CompactFiles(
+    const CompactionOptions& compact_options,
+    ColumnFamilyHandle* column_family,
+    const std::vector<std::string>& input_file_names,
+    const int output_level, const int output_path_id,
+    std::vector<std::string>* const output_file_names,
+    CompactionJobInfo* compaction_job_info) {
+  fprintf(stdout, "compacting: ");
+  for (auto f : input_file_names) {
+    fprintf(stdout, "%s,", f.c_str());
+  }
+  fprintf(stdout, "\n");
+
+  if (column_family == nullptr) {
+    return Status::InvalidArgument("ColumnFamilyHandle must be non-null.");
+  }
+
+  auto cfd =
+      static_cast_with_check<ColumnFamilyHandleImpl>(column_family)->cfd();
+  assert(cfd);
+
+  Status s;
+  JobContext job_context(0, true);
+  LogBuffer log_buffer(InfoLogLevel::INFO_LEVEL,
+                       immutable_db_options_.info_log.get());
+
+  // Perform CompactFiles
+  {
+    InstrumentedMutexLock l(&mutex_);
+
+    // We need to get current after `WaitForIngestFile`, because
+    // `IngestExternalFile` may add files that overlap with `input_file_names`
+    auto* current = cfd->current();
+    current->Ref();
+
+    s = CompactFilesImpl(compact_options, cfd, current, input_file_names,
+                         output_file_names, output_level, output_path_id,
+                         &job_context, &log_buffer, compaction_job_info);
+
+    current->Unref();
+  }
+
+  // Find and delete obsolete files
+  {
+    InstrumentedMutexLock l(&mutex_);
+    // If !s.ok(), this means that Compaction failed. In that case, we want
+    // to delete all obsolete files we might have created and we force
+    // FindObsoleteFiles(). This is because job_context does not
+    // catch all created files if compaction failed.
+    FindObsoleteFiles(&job_context, !s.ok());
+  }  // release the mutex
+
+  // delete unnecessary files if any, this is done outside the mutex
+  if (job_context.HaveSomethingToClean() ||
+      job_context.HaveSomethingToDelete() || !log_buffer.IsEmpty()) {
+    // Have to flush the info logs before bg_compaction_scheduled_--
+    // because if bg_flush_scheduled_ becomes 0 and the lock is
+    // released, the deconstructor of DB can kick in and destroy all the
+    // states of DB so info_log might not be available after that point.
+    // It also applies to access other states that DB owns.
+    log_buffer.FlushBufferToLog();
+    if (job_context.HaveSomethingToDelete()) {
+      // no mutex is locked here.  No need to Unlock() and Lock() here.
+      PurgeObsoleteFiles(job_context);
+    }
+    job_context.Clean();
+  }
+
+  return s;
+}
+
 #else   // !ROCKSDB_LITE
 
 Status DB::OpenAsSecondary(const Options& /*options*/,

@@ -1561,12 +1561,16 @@ struct CompactionOptions {
   // If > 0, it will replace the option in the DBOptions for this compaction.
   uint32_t max_subcompactions;
 
-  bool is_secondary;
+  bool is_compaction_worker;
+  // should be moved to dbimpl
+  std::string output_directory;
 
   CompactionOptions()
       : compression(kSnappyCompression),
         output_file_size_limit(std::numeric_limits<uint64_t>::max()),
-        max_subcompactions(0), is_secondary(false) {}
+        max_subcompactions(0),
+        is_compaction_worker(false),
+        output_directory(nullptr) {}
 };
 
 // For level based compaction, we can configure if we want to skip/force

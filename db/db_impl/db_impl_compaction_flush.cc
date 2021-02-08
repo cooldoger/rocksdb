@@ -1176,12 +1176,23 @@ Status DBImpl::CompactFilesImpl(
 
   assert(is_snapshot_supported_ || snapshots_.empty());
   CompactionJobStats compaction_job_stats;
+  FSDirectory* output_directory;
+  FSDirectory* blob_output_directory;
+  std::unique_ptr<FSDirectory> output_dir;
+  if (compact_options.is_compaction_worker) {
+    CreateAndNewDirectory(fs_.get(), compact_options.output_directory, &output_dir);
+    output_directory = output_dir.get();
+    blob_output_directory = output_dir.get();
+  } else {
+    output_directory = GetDataDir(c->column_family_data(), c->output_path_id());
+    blob_output_directory = GetDataDir(c->column_family_data(), 0);
+  }
   CompactionJob compaction_job(
       job_context->job_id, c.get(), immutable_db_options_,
       file_options_for_compaction_, versions_.get(), &shutting_down_,
       preserve_deletes_seqnum_.load(), log_buffer, directories_.GetDbDir(),
-      GetDataDir(c->column_family_data(), c->output_path_id()),
-      GetDataDir(c->column_family_data(), 0), stats_, &mutex_, &error_handler_,
+      output_directory,
+      blob_output_directory, stats_, &mutex_, &error_handler_,
       snapshot_seqs, earliest_write_conflict_snapshot, snapshot_checker,
       table_cache_, &event_logger_,
       c->mutable_cf_options()->paranoid_file_checks,

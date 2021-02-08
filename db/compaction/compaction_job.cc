@@ -609,6 +609,7 @@ Status CompactionJob::Run() {
       }
     }
     Status s = db_options_.compaction_service->Run(param, &result);
+    assert(false);
   } else {
     // Always schedule the first subcompaction (whether or not there are also
     // others) in the current thread to be efficient with resources

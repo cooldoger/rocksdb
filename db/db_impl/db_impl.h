@@ -1254,6 +1254,13 @@ class DBImpl : public DB {
   // to ensure that db_session_id_ gets updated every time the DB is opened
   void SetDbSessionId();
 
+  Status CompactFilesImpl(const CompactionOptions& compact_options,
+                          ColumnFamilyData* cfd, Version* version,
+                          const std::vector<std::string>& input_file_names,
+                          std::vector<std::string>* const output_file_names,
+                          const int output_level, int output_path_id,
+                          JobContext* job_context, LogBuffer* log_buffer,
+                          CompactionJobInfo* compaction_job_info);
  private:
   friend class DB;
   friend class ErrorHandler;
@@ -1631,14 +1638,6 @@ class DBImpl : public DB {
   void MemTableInsertStatusCheck(const Status& memtable_insert_status);
 
 #ifndef ROCKSDB_LITE
-
-  Status CompactFilesImpl(const CompactionOptions& compact_options,
-                          ColumnFamilyData* cfd, Version* version,
-                          const std::vector<std::string>& input_file_names,
-                          std::vector<std::string>* const output_file_names,
-                          const int output_level, int output_path_id,
-                          JobContext* job_context, LogBuffer* log_buffer,
-                          CompactionJobInfo* compaction_job_info);
 
   // Wait for current IngestExternalFile() calls to finish.
   // REQUIRES: mutex_ held
