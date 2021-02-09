@@ -179,7 +179,9 @@ TEST_F(RemoteCompactionTest, CompactionWorker) {
   options.max_open_files = -1;
 
   DB* db;
-  Status s = DB::OpenAsSecondary(options, kDBPathPrimary, kDBPathCompactor, &db);
+  srand(time(0));
+  std::string secondary_path = kDBPathCompactor + std::to_string(rand());
+  Status s = DB::OpenAsSecondary(options, kDBPathPrimary, secondary_path, &db);
   ASSERT_OK(s);
 
   for (int i = 0; i < 10; i++) {
@@ -203,7 +205,7 @@ TEST_F(RemoteCompactionTest, CompactionWorker) {
 
   CompactionOptions compaction_options;
   compaction_options.is_compaction_worker = true;
-  compaction_options.output_directory = kDBPathCompactor;
+  compaction_options.output_directory = secondary_path;
   s = db->CompactFiles(compaction_options, files_to_compact, output_level);
   ASSERT_OK(s);
   delete db;
