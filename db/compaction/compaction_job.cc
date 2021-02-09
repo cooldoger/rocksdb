@@ -808,14 +808,14 @@ Status CompactionJob::Run() {
 Status CompactionJob::DisplayOuput() {
   assert(compact_);
   std::ostringstream oss;
-  oss << compact_->compaction->output_level() << "; ";
+//  oss << compact_->compaction->output_level() << "; ";
   for (auto output: compact_->sub_compact_states[0].outputs) {
     uint64_t fn = output.meta.fd.GetNumber();
-    oss << MakeTableFileName(compaction_output_directory_, fn) << ", "
-        << output.meta.fd.smallest_seqno << ", "
-        << output.meta.fd.largest_seqno << ", "
-        << output.meta.smallest.Encode().ToString(true) << ", "
-        << output.meta.largest.Encode().ToString(true) << "; ";
+    oss << MakeTableFileName(compaction_output_directory_, fn) << ","
+        << output.meta.fd.smallest_seqno << ","
+        << output.meta.fd.largest_seqno << ","
+        << output.meta.smallest.Encode().ToString(true) << ","
+        << output.meta.largest.Encode().ToString(true) << ";";
   }
 
   fprintf(stdout, "%s\n", oss.str().c_str());

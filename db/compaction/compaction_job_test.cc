@@ -92,30 +92,27 @@ class RemoteCompactionTest : public testing::Test {
   Env* env() { return env_; }
 };
 
-class MyCompactionService : public CompactionService {
- private:
-
-  std::vector<std::string> split(std::string text, char delim) {
-    std::string line;
-    std::vector<std::string> vec;
-    std::stringstream ss(text);
-    while(std::getline(ss, line, delim)) {
-      vec.push_back(line);
-    }
-    return vec;
+std::vector<std::string> split(std::string text, char delim) {
+  std::string line;
+  std::vector<std::string> vec;
+  std::stringstream ss(text);
+  while(std::getline(ss, line, delim)) {
+    vec.push_back(line);
   }
+  return vec;
+}
+
+class MyCompactionService : public CompactionService {
  public:
   Status Run(const CompactionParam& param, CompactionResult* result) override {
     std::cout << "Run compaction: " << std::endl;
+    std::cout << "COMPACT_INPUT=" << param.output_level << "\\;";
     for (auto input : param.input_files) {
-      std::cout << input << ", ";
+      std::cout << "/" << input << ",";
     }
     std::cout << std::endl;
 
-    std::cout << param.output_level << std::endl;
-
     OutputFile file;
-
     std::string input_str;
     std::getline(std::cin, input_str);
 
@@ -191,15 +188,18 @@ TEST_F(RemoteCompactionTest, CompactionWorker) {
     std::cout << i << " : " << (s.ok() ? result : "not found") << std::endl;
   }
 
-  int output_level;
-//  std::cin >> output_level;
-  output_level = 1;
+  const char* compact_input = getenv("COMPACT_INPUT");
+  std::string compact_input_str(compact_input);
+  auto input_list = split(compact_input_str, ';');
+
+  int output_level = std::stoi(input_list[0]);
+  auto files_to_compact = split(input_list[1], ',');
+
   std::cout << "output level: " << output_level << std::endl;
 
-  std::vector<std::string> files_to_compact;
-  files_to_compact.emplace_back("/000008.sst");
-  files_to_compact.emplace_back("/000010.sst");
-  files_to_compact.emplace_back("/000012.sst");
+  for (auto file : files_to_compact) {
+    std::cout << file << std::endl;
+  }
 
   CompactionOptions compaction_options;
   compaction_options.is_compaction_worker = true;
