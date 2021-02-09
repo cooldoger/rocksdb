@@ -69,8 +69,16 @@ struct CompactionParam {
   int output_level;
 };
 
+struct OutputFile {
+  std::string file_name;
+  SequenceNumber min_seq;
+  SequenceNumber max_seq;
+  std::string min_key;
+  std::string max_key;
+};
+
 struct CompactionResult {
-  std::vector<std::string> output_files;
+  std::vector<OutputFile> output_files;
 };
 
 class CompactionService {

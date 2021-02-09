@@ -93,6 +93,18 @@ class RemoteCompactionTest : public testing::Test {
 };
 
 class MyCompactionService : public CompactionService {
+ private:
+
+  std::vector<std::string> split(std::string text, char delim) {
+    std::string line;
+    std::vector<std::string> vec;
+    std::stringstream ss(text);
+    while(std::getline(ss, line, delim)) {
+      vec.push_back(line);
+    }
+    return vec;
+  }
+ public:
   Status Run(const CompactionParam& param, CompactionResult* result) override {
     std::cout << "Run compaction: " << std::endl;
     for (auto input : param.input_files) {
@@ -101,6 +113,29 @@ class MyCompactionService : public CompactionService {
     std::cout << std::endl;
 
     std::cout << param.output_level << std::endl;
+
+    OutputFile file;
+
+    std::string input_str;
+    std::getline(std::cin, input_str);
+
+    std::cout << input_str;
+
+    auto input_files = split(input_str, ';');
+    for (auto file_str : input_files) {
+      auto file_info = split(file_str, ',');
+      assert(file_info.size() == 5);
+      file.file_name = file_info[0];
+      file.min_seq = std::stoll(file_info[1]);
+      file.max_seq = std::stoll(file_info[2]);
+      auto min_key = Slice(file_info[3]);
+      min_key.DecodeHex(&(file.min_key));
+      auto max_key = Slice(file_info[4]);
+      max_key.DecodeHex(&(file.max_key));
+    }
+
+    result->output_files.emplace_back(file);
+
     return Status::OK();
   }
 };

@@ -612,7 +612,30 @@ Status CompactionJob::Run() {
       }
     }
     Status s = db_options_.compaction_service->Run(param, &result);
-    assert(false);
+    assert(s.ok());
+    for (auto output_file : result.output_files) {
+      uint64_t file_number = versions_->NewFileNumber();
+      std::string src_file = output_file.file_name;
+      std::string tgt_file = TableFileName(compact_->compaction->immutable_cf_options()->cf_paths,
+                                           file_number, compact_->compaction->output_path_id());
+
+      s = fs_->RenameFile(src_file, tgt_file, IOOptions(), nullptr);
+      assert(s.ok());
+
+      FileMetaData meta;
+      uint64_t file_size;
+      s = fs_->GetFileSize(tgt_file, IOOptions(), &file_size, nullptr);
+      assert(s.ok());
+      meta.fd = FileDescriptor(file_number, compact_->compaction->output_path_id(),
+                               file_size, output_file.min_seq, output_file.max_seq);
+      meta.smallest.DecodeFrom(output_file.min_key);
+      meta.largest.DecodeFrom(output_file.max_key);
+      ColumnFamilyData* cfd = compact_->compaction->column_family_data();
+      compact_->sub_compact_states[0].outputs.emplace_back(std::move(meta), cfd->internal_comparator(),
+                                                           compact_->compaction->mutable_cf_options()->check_flush_compaction_key_order,
+                                                           paranoid_file_checks_);
+      compact_->sub_compact_states[0].status = s;
+    }
   } else {
     // Always schedule the first subcompaction (whether or not there are also
     // others) in the current thread to be efficient with resources
