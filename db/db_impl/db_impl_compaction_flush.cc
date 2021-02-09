@@ -1179,10 +1179,14 @@ Status DBImpl::CompactFilesImpl(
   FSDirectory* output_directory;
   FSDirectory* blob_output_directory;
   std::unique_ptr<FSDirectory> output_dir;
+  bool is_compaction_worker = false;
+  std::string compaction_output_directory = "";
   if (compact_options.is_compaction_worker) {
     CreateAndNewDirectory(fs_.get(), compact_options.output_directory, &output_dir);
     output_directory = output_dir.get();
     blob_output_directory = output_dir.get();
+    is_compaction_worker = true;
+    compaction_output_directory = compact_options.output_directory;
   } else {
     output_directory = GetDataDir(c->column_family_data(), c->output_path_id());
     blob_output_directory = GetDataDir(c->column_family_data(), 0);
@@ -1191,15 +1195,15 @@ Status DBImpl::CompactFilesImpl(
       job_context->job_id, c.get(), immutable_db_options_,
       file_options_for_compaction_, versions_.get(), &shutting_down_,
       preserve_deletes_seqnum_.load(), log_buffer, directories_.GetDbDir(),
-      output_directory,
-      blob_output_directory, stats_, &mutex_, &error_handler_,
+      output_directory, blob_output_directory, stats_, &mutex_, &error_handler_,
       snapshot_seqs, earliest_write_conflict_snapshot, snapshot_checker,
       table_cache_, &event_logger_,
       c->mutable_cf_options()->paranoid_file_checks,
       c->mutable_cf_options()->report_bg_io_stats, dbname_,
       &compaction_job_stats, Env::Priority::USER, io_tracer_,
       &manual_compaction_paused_, db_id_, db_session_id_,
-      c->column_family_data()->GetFullHistoryTsLow());
+      c->column_family_data()->GetFullHistoryTsLow(), is_compaction_worker,
+      compaction_output_directory);
 
   // Creating a compaction influences the compaction score because the score
   // takes running compactions into account (by skipping files that are already
@@ -1219,7 +1223,13 @@ Status DBImpl::CompactFilesImpl(
   TEST_SYNC_POINT("CompactFilesImpl:3");
   mutex_.Lock();
 
-  Status status = compaction_job.Install(*c->mutable_cf_options());
+  // Skipp install if it's compaction worker
+  Status status;
+  if (compact_options.is_compaction_worker) {
+    status = compaction_job.DisplayOuput();
+  } else {
+    status = compaction_job.Install(*c->mutable_cf_options());
+  }
   if (status.ok()) {
     assert(compaction_job.io_status().ok());
     InstallSuperVersionAndScheduleWork(c->column_family_data(),
@@ -3054,7 +3064,8 @@ Status DBImpl::BackgroundCompaction(bool* made_progress,
         c->mutable_cf_options()->report_bg_io_stats, dbname_,
         &compaction_job_stats, thread_pri, io_tracer_,
         is_manual ? &manual_compaction_paused_ : nullptr, db_id_,
-        db_session_id_, c->column_family_data()->GetFullHistoryTsLow());
+        db_session_id_, c->column_family_data()->GetFullHistoryTsLow(), false,
+        "");
     compaction_job.Prepare();
 
     NotifyOnCompactionBegin(c->column_family_data(), c.get(), status,

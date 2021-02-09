@@ -309,7 +309,8 @@ CompactionJob::CompactionJob(
     const std::string& dbname, CompactionJobStats* compaction_job_stats,
     Env::Priority thread_pri, const std::shared_ptr<IOTracer>& io_tracer,
     const std::atomic<int>* manual_compaction_paused, const std::string& db_id,
-    const std::string& db_session_id, std::string full_history_ts_low)
+    const std::string& db_session_id, std::string full_history_ts_low,
+    bool is_compaction_worker, std::string compaction_output_directory)
     : job_id_(job_id),
       compact_(new CompactionState(compaction)),
       compaction_job_stats_(compaction_job_stats),
@@ -345,7 +346,9 @@ CompactionJob::CompactionJob(
       measure_io_stats_(measure_io_stats),
       write_hint_(Env::WLTH_NOT_SET),
       thread_pri_(thread_pri),
-      full_history_ts_low_(std::move(full_history_ts_low)) {
+      full_history_ts_low_(std::move(full_history_ts_low)),
+      is_compaction_worker_(is_compaction_worker),
+      compaction_output_directory_(compaction_output_directory) {
   assert(compaction_job_stats_ != nullptr);
   assert(log_buffer_ != nullptr);
   const auto* cfd = compact_->compaction->column_family_data();
@@ -777,6 +780,24 @@ Status CompactionJob::Run() {
 
   compact_->status = status;
   return status;
+}
+
+Status CompactionJob::DisplayOuput() {
+  assert(compact_);
+  std::ostringstream oss;
+  oss << compact_->compaction->output_level() << "; ";
+  for (auto output: compact_->sub_compact_states[0].outputs) {
+    uint64_t fn = output.meta.fd.GetNumber();
+    oss << MakeTableFileName(compaction_output_directory_, fn) << ", "
+        << output.meta.fd.smallest_seqno << ", "
+        << output.meta.fd.largest_seqno << ", "
+        << output.meta.smallest.Encode().ToString(true) << ", "
+        << output.meta.largest.Encode().ToString(true) << "; ";
+  }
+
+  fprintf(stdout, "%s\n", oss.str().c_str());
+  CleanupCompaction();
+  return Status::OK();
 }
 
 Status CompactionJob::Install(const MutableCFOptions& mutable_cf_options) {
@@ -1677,6 +1698,12 @@ Status CompactionJob::OpenCompactionOutputFile(
   std::string fname =
       TableFileName(sub_compact->compaction->immutable_cf_options()->cf_paths,
                     file_number, sub_compact->compaction->output_path_id());
+
+  // override output directory and filename
+  if (is_compaction_worker_) {
+    file_number = 1;
+    fname = MakeTableFileName(compaction_output_directory_, file_number);
+  }
   // Fire events.
   ColumnFamilyData* cfd = sub_compact->compaction->column_family_data();
 #ifndef ROCKSDB_LITE

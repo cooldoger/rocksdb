@@ -455,7 +455,7 @@ class CompactionJobTestBase : public testing::Test {
         &event_logger, false, false, dbname_, &compaction_job_stats_,
         Env::Priority::USER, nullptr /* IOTracer */,
         /*manual_compaction_paused=*/nullptr, /*db_id=*/"",
-        /*db_session_id=*/"", full_history_ts_low_);
+        /*db_session_id=*/"", full_history_ts_low_, false, "");
     VerifyInitializationOfCompactionJobStats(compaction_job_stats_);
 
     compaction_job.Prepare();

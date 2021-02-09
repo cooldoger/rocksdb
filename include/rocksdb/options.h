@@ -1569,8 +1569,7 @@ struct CompactionOptions {
       : compression(kSnappyCompression),
         output_file_size_limit(std::numeric_limits<uint64_t>::max()),
         max_subcompactions(0),
-        is_compaction_worker(false),
-        output_directory(nullptr) {}
+        is_compaction_worker(false) {}
 };
 
 // For level based compaction, we can configure if we want to skip/force

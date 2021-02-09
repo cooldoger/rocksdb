@@ -79,7 +79,8 @@ class CompactionJob {
       Env::Priority thread_pri, const std::shared_ptr<IOTracer>& io_tracer,
       const std::atomic<int>* manual_compaction_paused = nullptr,
       const std::string& db_id = "", const std::string& db_session_id = "",
-      std::string full_history_ts_low = "");
+      std::string full_history_ts_low = "", bool is_compaction_worker = false,
+      std::string compaction_output_directory = "");
 
   ~CompactionJob();
 
@@ -101,8 +102,12 @@ class CompactionJob {
   // Add compaction input/output to the current version
   Status Install(const MutableCFOptions& mutable_cf_options);
 
+  Status DisplayOuput();
+
   // Return the IO status
   IOStatus io_status() const { return io_status_; }
+
+  void CleanupCompaction();
 
  private:
   struct SubcompactionState;
@@ -131,7 +136,7 @@ class CompactionJob {
   Status InstallCompactionResults(const MutableCFOptions& mutable_cf_options);
   void RecordCompactionIOStats();
   Status OpenCompactionOutputFile(SubcompactionState* sub_compact);
-  void CleanupCompaction();
+
   void UpdateCompactionJobStats(
     const InternalStats::CompactionStats& stats) const;
   void RecordDroppedKeys(const CompactionIterationStats& c_iter_stats,
@@ -203,6 +208,8 @@ class CompactionJob {
   Env::Priority thread_pri_;
   IOStatus io_status_;
   std::string full_history_ts_low_;
+  bool is_compaction_worker_;
+  std::string compaction_output_directory_;
 };
 
 }  // namespace ROCKSDB_NAMESPACE
