@@ -173,6 +173,195 @@ TEST_F(RemoteCompactionTest, Primary) {
   db->CompactFiles(compaction_options, files_to_compact, output_level);
 }
 
+struct RemoteCompactionJob {
+  int id;
+  CompactionParam param;
+  CompactionResult result;
+  bool is_done = false;
+
+  RemoteCompactionJob(int id_input, CompactionParam param_input) {
+    id = id_input;
+    param = param_input;
+  }
+};
+
+class CompactionJobQueue {
+ public:
+  port::Mutex mutex_;
+  port::CondVar cond_var_;
+  std::vector<RemoteCompactionJob> jobs;
+
+  CompactionJobQueue() : cond_var_(&mutex_) {}
+
+  int AddJobAndWait(const CompactionParam& param) {
+    int id = jobs.size();
+    std::cout << "Run compaction id: " << id << std::endl;
+    std::cout << "COMPACT_INPUT=" << param.output_level << "\\;";
+    for (auto input : param.input_files) {
+      std::cout << "/" << input << ",";
+    }
+    std::cout << std::endl;
+    MutexLock lock(&mutex_);
+    jobs.emplace_back(id, param);
+    while(!jobs[id].is_done) {
+      cond_var_.Wait();
+    }
+    return id;
+  }
+
+  void FinishJob(int id, std::string result) {
+    MutexLock lock(&mutex_);
+    std::cout << result << std::endl;
+
+    OutputFile file;
+    auto input_files = split(result, ';');
+    for (auto file_str : input_files) {
+      auto file_info = split(file_str, ',');
+      assert(file_info.size() == 5);
+      file.file_name = file_info[0];
+      file.min_seq = std::stoll(file_info[1]);
+      file.max_seq = std::stoll(file_info[2]);
+      auto min_key = Slice(file_info[3]);
+      min_key.DecodeHex(&(file.min_key));
+      auto max_key = Slice(file_info[4]);
+      max_key.DecodeHex(&(file.max_key));
+    }
+
+    jobs[id].result.output_files.emplace_back(file);
+    jobs[id].is_done = true;
+
+    cond_var_.SignalAll();
+  }
+};
+
+class MyCompactionServiceWithJobQueue : public CompactionService {
+  CompactionJobQueue* job_queue_;
+
+ public:
+  Status Run(const CompactionParam& param, CompactionResult* result) override {
+    int id = job_queue_->AddJobAndWait(param);
+    *result = job_queue_->jobs[id].result;
+    return Status::OK();
+  }
+
+  MyCompactionServiceWithJobQueue(CompactionJobQueue* job_queue) {
+    job_queue_ = job_queue;
+  }
+};
+
+TEST_F(RemoteCompactionTest, Primary2) {
+  Options options;
+  options.env = env();
+  options.create_if_missing = true;
+  options.disable_auto_compactions = true;
+
+  Status s;
+  s = DestroyDB(kDBPathPrimary, options);
+  ASSERT_OK(s);
+
+  CompactionJobQueue job_queue;
+
+  options.compaction_service = std::make_shared<MyCompactionServiceWithJobQueue>(&job_queue);
+
+  DB* db;
+  s = DB::Open(options, kDBPathPrimary, &db);
+  ASSERT_OK(s);
+
+  // Add L0 files with overlap
+  for (int i = 0; i < 4; i++) {
+    s = db->Put(WriteOptions(), "Key" + std::to_string(i + 0), "val");
+    ASSERT_OK(s);
+    s = db->Put(WriteOptions(), "Key" + std::to_string(i + 5), "val");
+    ASSERT_OK(s);
+    db->Flush(FlushOptions());
+  }
+
+  std::vector<std::string> files_to_compact;
+  std::vector<LiveFileMetaData> files_meta;
+  db->GetLiveFilesMetaData(&files_meta);
+  for (auto file : files_meta) {
+    files_to_compact.push_back(file.name);
+//    std::cout << file.name << std::endl;
+  }
+
+  std::thread t1([&](){
+    CompactionOptions compaction_options;
+    int output_level = 1; // pre-define the output level
+    std::cout << "JJJ1: " << files_to_compact.size() << std::endl;
+    db->CompactFiles(compaction_options, files_to_compact, output_level);
+    return 0;
+  });
+
+  env()->SleepForMicroseconds(1000000);
+
+  for (int i = 4; i < 6; i++) {
+    s = db->Put(WriteOptions(), "Key" + std::to_string(i + 0), "val");
+    ASSERT_OK(s);
+    s = db->Put(WriteOptions(), "Key" + std::to_string(i + 5), "val");
+    ASSERT_OK(s);
+    db->Flush(FlushOptions());
+  }
+
+  std::vector<std::string> files_to_compact2;
+  db->GetLiveFilesMetaData(&files_meta);
+  for (auto file : files_meta) {
+    if (!file.being_compacted) {
+      files_to_compact2.push_back(file.name);
+    }
+//    std::cout << file.name << std::endl;
+  }
+
+  std::thread t2([&](){
+    CompactionOptions compaction_options;
+    int output_level = 0; // pre-define the output level
+    std::cout << "JJJ2: " << files_to_compact2.size() << std::endl;
+    db->CompactFiles(compaction_options, files_to_compact2, output_level);
+    return 0;
+  });
+
+  env()->SleepForMicroseconds(1000000);
+
+  for (int i = 6; i < 9; i++) {
+    s = db->Put(WriteOptions(), "Key" + std::to_string(i + 0), "val");
+    ASSERT_OK(s);
+    s = db->Put(WriteOptions(), "Key" + std::to_string(i + 5), "val");
+    ASSERT_OK(s);
+    db->Flush(FlushOptions());
+  }
+
+  std::vector<std::string> files_to_compact3;
+  db->GetLiveFilesMetaData(&files_meta);
+  for (auto file : files_meta) {
+    if (!file.being_compacted) {
+      files_to_compact3.push_back(file.name);
+    }
+//    std::cout << file.name << std::endl;
+  }
+
+  std::thread t3([&](){
+    CompactionOptions compaction_options;
+    int output_level = 0; // pre-define the output level
+    std::cout << "JJJ3: " << files_to_compact3.size() << std::endl;
+    db->CompactFiles(compaction_options, files_to_compact3, output_level);
+    return 0;
+  });
+
+  env()->SleepForMicroseconds(3000000);
+
+  std::string compaction_id;
+  while(std::getline(std::cin, compaction_id)) {
+    if (!compaction_id.empty()) {
+      std::string input_str;
+      std::getline(std::cin, input_str);
+      job_queue.FinishJob(std::stoi(compaction_id), input_str);
+    }
+  }
+
+  t1.join();
+  t2.join();
+  t3.join();
+}
+
 TEST_F(RemoteCompactionTest, CompactionWorker) {
   Options options;
   options.env = env();
