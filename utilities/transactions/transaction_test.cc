@@ -2960,7 +2960,14 @@ TEST_P(TransactionTest, MultiGetSnapshot) {
   auto cfd = db->DefaultColumnFamily();
   txn2->MultiGet(read_options, cfd, 1, keys.data(), values.data(),
                  statuses.data());
-  ASSERT_TRUE(statuses[0].IsNotFound());
+  std::cout << "multiget: " << statuses[0].ToString() << std::endl;
+  std::string value;
+  s = txn2->Get(read_options, keys[0], &value);
+  std::cout << "get: " << s.ToString() << std::endl;
+  if (statuses[0].ok()) {
+    std::cout << "wrong: " << txn_db_options.write_policy << std::endl;
+  }
+//  ASSERT_TRUE(statuses[0].IsNotFound());
   delete txn2;
 
   db->ReleaseSnapshot(s1);

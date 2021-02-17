@@ -2397,7 +2397,7 @@ void DBImpl::MultiGetWithCallback(
   }
 
   GetWithTimestampReadCallback timestamp_read_callback(0);
-  ReadCallback* read_callback = callback;
+  ReadCallback* read_callback = nullptr;
   if (read_options.timestamp && read_options.timestamp->size() > 0) {
     assert(!read_callback);  // timestamp with callback is not supported
     timestamp_read_callback.Refresh(consistent_seqnum);
