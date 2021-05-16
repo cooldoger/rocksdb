@@ -1264,6 +1264,32 @@ TEST_P(ExternalSSTFileTest, PickedLevel) {
   ROCKSDB_NAMESPACE::SyncPoint::GetInstance()->DisableProcessing();
 }
 
+TEST_F(ExternalSSTFileTest, TT) {
+  std::cout << "[main] start t1" << std::endl;
+
+  SyncPoint::GetInstance()->LoadDependency(
+      {{"ExternalSSTFileTest::TT:T1", "ExternalSSTFileTest::TT:T2"},
+       });
+
+  SyncPoint::GetInstance()->EnableProcessing();
+
+  port::Thread t1([&](){
+    std::cout << "[t1] start" << std::endl;
+    TEST_SYNC_POINT("ExternalSSTFileTest::TT:T1");
+    std::cout << "[t1] end" << std::endl;
+  });
+
+  std::cout << "[main] start t2" << std::endl;
+  port::Thread t2([&](){
+    std::cout << "[t2] start" << std::endl;
+    TEST_SYNC_POINT("ExternalSSTFileTest::TT:T2");
+    std::cout << "[t2] end" << std::endl;
+  });
+
+  t1.join();
+  t2.join();
+}
+
 TEST_F(ExternalSSTFileTest, PickedLevelBug) {
   env_->skip_fsync_ = true;
   Options options = CurrentOptions();
@@ -1337,6 +1363,7 @@ TEST_F(ExternalSSTFileTest, PickedLevelBug) {
 
     // Hold AddFile from finishing writing the MANIFEST
     TEST_SYNC_POINT("ExternalSSTFileTest::PickedLevelBug:1");
+    fprintf(stdout, "pickedlevelbug: end\n");
   }
 
   ASSERT_OK(bg_addfile_status);
