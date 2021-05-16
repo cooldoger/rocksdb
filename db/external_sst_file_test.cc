@@ -1317,6 +1317,8 @@ TEST_F(ExternalSSTFileTest, PickedLevelBug) {
   // We have 2 overlapping files in L0
   EXPECT_EQ(FilesPerLevel(), "2");
 
+  ASSERT_OK(dbfull()->TEST_WaitForCompact());
+
   ROCKSDB_NAMESPACE::SyncPoint::GetInstance()->LoadDependency(
       {{"DBImpl::AddFile:MutexLock", "ExternalSSTFileTest::PickedLevelBug:0"},
        {"ExternalSSTFileTest::PickedLevelBug:1", "DBImpl::AddFile:MutexUnlock"},
@@ -1363,7 +1365,6 @@ TEST_F(ExternalSSTFileTest, PickedLevelBug) {
 
     // Hold AddFile from finishing writing the MANIFEST
     TEST_SYNC_POINT("ExternalSSTFileTest::PickedLevelBug:1");
-    fprintf(stdout, "pickedlevelbug: end\n");
   }
 
   ASSERT_OK(bg_addfile_status);
