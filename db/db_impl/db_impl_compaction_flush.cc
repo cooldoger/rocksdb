@@ -3297,8 +3297,10 @@ bool DBImpl::ShouldntRunManualCompaction(ManualCompactionState* m) {
   if (num_running_ingest_file_ > 0) {
     // We need to wait for other IngestExternalFile() calls to finish
     // before running a manual compaction.
+    fprintf(stdout, "JJJ1: stop\n");
     return true;
   }
+  fprintf(stdout, "JJJ2: go\n");
   if (m->exclusive) {
     return (bg_bottom_compaction_scheduled_ > 0 ||
             bg_compaction_scheduled_ > 0);
