@@ -14,11 +14,7 @@ foreach(ONE_BENCH_CPP ${ALL_BENCH_CPP})
    add_executable(${TARGET_NAME} ${ONE_BENCH_CPP})
    set_target_properties(${TARGET_NAME} PROPERTIES OUTPUT_NAME ${ONE_BENCH_EXEC}) 
    target_link_libraries(${TARGET_NAME} ${ROCKSDB_LIB}
-
-# If required, you can add your project library here
-# ...
-
-	 benchmark
+	 benchmark::benchmark
      ${CMAKE_THREAD_LIBS_INIT})
 
    # If you want to run benchmarks with the "make test" command, uncomment me

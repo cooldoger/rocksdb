@@ -1356,21 +1356,13 @@ if(WITH_EXAMPLES)
   add_subdirectory(examples)
 endif()
 
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Enable benchmark self-testing?")
+option(WITH_BENCHMARK "build benchmark tests" ON)
 
-# Fix dependency download
-# https://github.com/google/benchmark/issues/564
-#
-set(BENCHMARK_DOWNLOAD_DEPENDENCIES ON CACHE BOOL "Download dependencies?")
-
-# Setup compiler flags, c++11 is required
-#
-#if((CMAKE_CXX_COMPILER_ID MATCHES GNU) OR (CMAKE_CXX_COMPILER_ID MATCHES Clang))
-#  set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} -std=c++11")
-#  set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -g3")
-#  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-#endif()
-
-include(ConfigGBench)
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Disable benchmark testing" FORCE)
+set(BENCHMARK_ENABLE_EXCEPTIONS OFF CACHE BOOL "Disable benchmark exceptions" FORCE)
+set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "Don't install benchmark" FORCE)
+set(BENCHMARK_DOWNLOAD_DEPENDENCIES OFF CACHE BOOL "Don't download dependencies" FORCE)
+set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "Disable Google Test in benchmark" FORCE)
+find_package(benchmark REQUIRED)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/microbench/)
