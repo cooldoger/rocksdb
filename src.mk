@@ -391,6 +391,7 @@ TEST_MAIN_SOURCES =                                                     \
   db/db_with_timestamp_basic_test.cc                                    \
   db/db_block_cache_test.cc                                             \
   db/db_bloom_filter_test.cc                                            \
+  microbench/filter_bench.cc \
   db/db_compaction_filter_test.cc                                       \
   db/db_compaction_test.cc                                              \
   db/db_dynamic_level_test.cc                                           \
