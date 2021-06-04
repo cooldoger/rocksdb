@@ -17,7 +17,7 @@ class MyTestCompactionService : public CompactionService {
       : db_path_(db_path), fs_(fs), options_(options) {}
 
   CompactionServiceJobStatus Start(const std::string& compaction_service_input,
-                                   int job_id) override {
+                                   uint64_t job_id) override {
     InstrumentedMutexLock l(&mutex_);
     jobs_.emplace(job_id, compaction_service_input);
     CompactionServiceJobStatus s = CompactionServiceJobStatus::kSuccess;
@@ -26,7 +26,7 @@ class MyTestCompactionService : public CompactionService {
   }
 
   CompactionServiceJobStatus WaitForComplete(
-      int job_id, std::string* compaction_service_result) override {
+      uint64_t job_id, std::string* compaction_service_result) override {
     std::string compaction_input;
     {
       InstrumentedMutexLock l(&mutex_);
@@ -69,7 +69,7 @@ class MyTestCompactionService : public CompactionService {
  private:
   InstrumentedMutex mutex_;
   std::atomic_int compaction_num_{0};
-  std::map<int, std::string> jobs_;
+  std::map<uint64_t, std::string> jobs_;
   const std::string db_path_;
   std::shared_ptr<FileSystem> fs_;
   Options options_;
@@ -278,8 +278,7 @@ TEST_F(CompactionServiceTest, InvalidResult) {
   ASSERT_FALSE(s.ok());
 }
 
-// TODO: support sub-compaction
-TEST_F(CompactionServiceTest, DISABLED_SubCompaction) {
+TEST_F(CompactionServiceTest, SubCompaction) {
   Options options = CurrentOptions();
   options.env = env_;
   options.max_subcompactions = 10;
@@ -290,10 +289,20 @@ TEST_F(CompactionServiceTest, DISABLED_SubCompaction) {
 
   DestroyAndReopen(options);
   GenerateTestData();
+  VerifyTestData();
+
+  auto my_cs =
+      dynamic_cast<MyTestCompactionService*>(options.compaction_service.get());
+  int compaction_num_before = my_cs->GetCompactionNum();
 
   auto cro = CompactRangeOptions();
   cro.max_subcompactions = 10;
-  db_->CompactRange(cro, nullptr, nullptr);
+  Status s = db_->CompactRange(cro, nullptr, nullptr);
+  ASSERT_OK(s);
+  VerifyTestData();
+  int compaction_num = my_cs->GetCompactionNum() - compaction_num_before;
+  // make sure there's sub-compaction by checking the compaction number
+  ASSERT_GE(compaction_num, 2);
 }
 
 class PartialDeleteCompactionFilter : public CompactionFilter {
