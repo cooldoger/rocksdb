@@ -147,6 +147,92 @@ TEST_F(DBSecondaryTest, ReopenAsSecondary) {
   ASSERT_EQ(2, count);
 }
 
+struct ActionKComparator : public Comparator {
+ public:
+  int Compare(const Slice& sa, const Slice& sb)
+  const override {
+    if (sa.ToString() > sb.ToString()) {
+      return 1;
+    } else {
+      return -1;
+    }
+//    auto* va = (action_k*)sa.data();
+//    auto* vb = (action_k*)sb.data();
+//    if (va->actor() != vb->actor()) {
+//      return (va->actor() < vb->actor()) ? -1 : 1;
+//    }
+//    if (va->ts() != vb->ts()) {
+//      return (va->ts() > vb->ts()) ? -1 : 1; // time is in reverse order
+//    }
+//    if (va->rand() != vb->rand()) {
+//      return (va->rand() < vb->rand()) ? -1 : 1;
+//    }
+//    return 0;
+  }
+
+  const char* Name() const override {
+    return "ActionKComparator";
+  }
+
+  void FindShortestSeparator(std::string* /*s*/, const rocksdb::Slice& /*l*/)
+  const override {}
+
+  void FindShortSuccessor(std::string* /*key*/) const override {}
+};
+
+class MyBase {
+ public:
+  void Close() {
+    fprintf(stdout, "JJJ1: closing\n");
+    std::string s1 = "hello";
+    std::string s2 = "world";
+    if (cp_->Compare(s1, s2)) {
+      fprintf(stdout, "JJJ3: s1 > s2\n");
+    } else {
+      fprintf(stdout, "JJJ4: s1 <= s2\n");
+    }
+  }
+  ~MyBase() {
+    Close();
+  }
+
+  void SetCP(Comparator* cp) {
+    cp_ = cp;
+  }
+ private:
+  Comparator* cp_;
+};
+
+class MyDB : public MyBase {
+ public:
+  void Set() {
+    SetCP(&cc);
+  }
+
+ private:
+  ActionKComparator cc;
+};
+
+TEST_F(DBSecondaryTest, TT2) {
+  MyDB my_db;
+  my_db.Set();
+}
+
+TEST_F(DBSecondaryTest, TT) {
+  std::string s1 = "hello";
+  std::string s2 = "world";
+  ActionKComparator* cp1;
+  {
+    ActionKComparator cc;
+    cp1 = &cc;
+  }
+  if (cp1->Compare(s1, s2)) {
+    std::cout << "JJJ1" << std::endl;
+  } else {
+    std::cout << "JJJ2" << std::endl;
+  }
+}
+
 TEST_F(DBSecondaryTest, SimpleInternalCompaction) {
   Options options;
   options.env = env_;
