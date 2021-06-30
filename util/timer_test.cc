@@ -6,6 +6,7 @@
 #include "util/timer.h"
 
 #include "db/db_test_util.h"
+#include "table/block_based/filter_policy_internal.h"
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -95,6 +96,12 @@ TEST_F(TimerTest, SingleScheduleRepeatedly) {
   ASSERT_EQ(kIterations, count);
 
   ASSERT_TRUE(timer.Shutdown());
+}
+
+TEST_F(TimerTest, TT) {
+  for (int filterMode : {BloomFilterPolicy::kLegacyBloom, BloomFilterPolicy::kFastLocalBloom, BloomFilterPolicy::kStandard128Ribbon}) {
+    std::cout << filterMode << std::endl;
+  }
 }
 
 TEST_F(TimerTest, MultipleScheduleRepeatedly) {
